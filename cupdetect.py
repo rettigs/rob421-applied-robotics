@@ -10,17 +10,6 @@ help_message = '''
 USAGE: cupdetect.py [<video_source>]
 '''
 
-def detect(img, cascade):
-    rects = cascade.detectMultiScale(img, scaleFactor=1.3, minNeighbors=4, minSize=(30, 30), flags = cv.CV_HAAR_SCALE_IMAGE)
-    if len(rects) == 0:
-        return []
-    rects[:,2:] += rects[:,:2]
-    return rects
-
-def draw_rects(img, rects, color):
-    for x1, y1, x2, y2 in rects:
-        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-
 if __name__ == '__main__':
     import sys, getopt
     print help_message
@@ -52,16 +41,6 @@ if __name__ == '__main__':
 
         color = (255, 0, 0) # Color is BGR, not RBG!
         cv2.drawContours(img, cup_contours, -1, color, thickness=-1)
-
-        '''
-        rects = []
-        draw_rects(img, rects, (0, 255, 0))
-        for x1, y1, x2, y2 in rects:
-            roi = gray[y1:y2, x1:x2]
-            img_roi = img[y1:y2, x1:x2]
-            subrects = detect(roi.copy(), nested)
-            draw_rects(img_roi, subrects, (255, 0, 0))
-        '''
 
         dt = clock() - t # Stop timing how long it took to process this frame
 
