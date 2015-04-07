@@ -64,6 +64,7 @@ if __name__ == '__main__':
         ret, binimg = cv2.threshold(grayimg, 200, 255, cv2.THRESH_BINARY)
         #binimg = cv2.adaptiveThreshold(grayimg, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 13, 5)
         #binimg = cv2.Canny(grayimg, 250, 255)
+        # do erosion and dilation?
         visbinimg = binimg.copy()
         contours, hierarchy = cv2.findContours(binimg, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cup_contours = []
