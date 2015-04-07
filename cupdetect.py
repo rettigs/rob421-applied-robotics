@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import random as rand
 import numpy as np
 import cv2
 import cv2.cv as cv
@@ -10,6 +11,40 @@ help_message = '''
 USAGE: cupdetect.py [<video_source>]
 '''
 
+def isEllipse(contour):
+    rect = cv2.fitEllipse(contour) # Rotated rectangle representing the ellipse it tries to fit
+    (x, y), (w, h), angle = rect # x offset, y offset, width, height, angle
+    w, h = h, w # Switch them since our ellipses are usually rotated 90 degrees
+
+    # Draw TEST_INSIDE points inside the ellipse and TEST_OUTSIDE points outside and see if they're in the hull
+    TEST_INSIDE = 10
+    TEST_OUTSIDE = 10
+
+    # Equation of ellipse: (x/a)^2 + (y/b)^2 = 1
+
+    e = 0.05
+    
+    tests = []
+    tests.append(cv2.pointPolygonTest(contour, (x, y), False))
+
+    tests.append(cv2.pointPolygonTest(contour, (x+w*(0.5-e), y), False))
+    tests.append(cv2.pointPolygonTest(contour, (x-w*(0.5-e), y), False))
+    tests.append(cv2.pointPolygonTest(contour, (x, y+h*(0.5-e)), False))
+    tests.append(cv2.pointPolygonTest(contour, (x, y-h*(0.5-e)), False))
+
+    tests.append(not cv2.pointPolygonTest(contour, (x+w*(0.5-e), y+h*(0.5-e)), False))
+    tests.append(not cv2.pointPolygonTest(contour, (x+w*(0.5-e), y-h*(0.5-e)), False))
+    tests.append(not cv2.pointPolygonTest(contour, (x-w*(0.5-e), y+h*(0.5-e)), False))
+    tests.append(not cv2.pointPolygonTest(contour, (x-w*(0.5-e), y-h*(0.5-e)), False))
+
+    for test in tests:
+        if test == -1.0:
+            return False
+
+    print x, y, w, h, angle
+    
+    return True
+
 if __name__ == '__main__':
     import sys, getopt
     print help_message
@@ -19,7 +54,7 @@ if __name__ == '__main__':
     except: video_src = 0
     args = dict(args)
 
-    cam = create_capture(video_src, fallback='synth:bg=../cpp/lena.jpg:noise=0.05')
+    cam = create_capture(video_src)
 
     while True:
         ret, img = cam.read()
@@ -33,10 +68,10 @@ if __name__ == '__main__':
         cup_contours = []
         for contour in contours:
             contour_area = cv2.contourArea(contour)
-            if contour_area > 100:
+            if contour_area > 200:
                 ellipse = cv2.fitEllipse(contour)
                 ellipse_area = ellipse[1][0] * ellipse[1][1] # Area of rotated rect representing the ellipse
-                if abs(ellipse_area * 1.27 - contour_area) < 1000:
+                if isEllipse(contour):
                     cup_contours.append(contour)
 
         color = (255, 0, 0) # Color is BGR, not RBG!
@@ -45,12 +80,10 @@ if __name__ == '__main__':
         dt = clock() - t # Stop timing how long it took to process this frame
 
         # Show the images
-        draw_str(img, (20, 20), 'time: %.1f ms' % (dt*1000))
-        #draw_str(grayimg, (20, 20), 'time: %.1f ms' % (dt*1000))
         draw_str(binimg, (20, 20), 'time: %.1f ms' % (dt*1000))
-        cv2.imshow('raw', img)
-        #cv2.imshow('grayscale', grayimg)
+        draw_str(img, (20, 20), 'time: %.1f ms' % (dt*1000))
         cv2.imshow('binary', binimg)
+        cv2.imshow('raw', img)
 
         if 0xFF & cv2.waitKey(5) == 27:
             break
