@@ -22,7 +22,7 @@ def isEllipse(contour):
 
     # Equation of ellipse: (x/a)^2 + (y/b)^2 = 1
 
-    e = 0.05
+    e = 0.1
     
     tests = []
     tests.append(cv2.pointPolygonTest(contour, (x, y), False))
@@ -41,8 +41,6 @@ def isEllipse(contour):
         if test == -1.0:
             return False
 
-    print x, y, w, h, angle
-    
     return True
 
 if __name__ == '__main__':
@@ -63,16 +61,16 @@ if __name__ == '__main__':
 
         grayimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         grayimg = cv2.equalizeHist(grayimg)
-        ret, binimg = cv2.threshold(grayimg, 100, 255, cv2.THRESH_BINARY)
-        contours, hierarchy = cv2.findContours(binimg, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+        ret, binimg = cv2.threshold(grayimg, 200, 255, cv2.THRESH_BINARY)
+        #binimg = cv2.adaptiveThreshold(grayimg, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 13, 5)
+        #binimg = cv2.Canny(grayimg, 250, 255)
+        visbinimg = binimg.copy()
+        contours, hierarchy = cv2.findContours(binimg, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cup_contours = []
         for contour in contours:
             contour_area = cv2.contourArea(contour)
-            if contour_area > 200:
-                ellipse = cv2.fitEllipse(contour)
-                ellipse_area = ellipse[1][0] * ellipse[1][1] # Area of rotated rect representing the ellipse
-                if isEllipse(contour):
-                    cup_contours.append(contour)
+            if contour_area > 100 and contour_area < 800 and isEllipse(contour):
+                cup_contours.append(contour)
 
         color = (255, 0, 0) # Color is BGR, not RBG!
         cv2.drawContours(img, cup_contours, -1, color, thickness=-1)
@@ -80,9 +78,13 @@ if __name__ == '__main__':
         dt = clock() - t # Stop timing how long it took to process this frame
 
         # Show the images
+        draw_str(grayimg, (20, 20), 'time: %.1f ms' % (dt*1000))
+        draw_str(visbinimg, (20, 20), 'time: %.1f ms' % (dt*1000))
         draw_str(binimg, (20, 20), 'time: %.1f ms' % (dt*1000))
         draw_str(img, (20, 20), 'time: %.1f ms' % (dt*1000))
-        cv2.imshow('binary', binimg)
+        cv2.imshow('grayscale', grayimg)
+        cv2.imshow('binary', visbinimg)
+        cv2.imshow('contours', binimg)
         cv2.imshow('raw', img)
 
         if 0xFF & cv2.waitKey(5) == 27:
