@@ -53,6 +53,7 @@ if __name__ == '__main__':
     args = dict(args)
 
     cam = create_capture(video_src)
+    #stream = cv2.VideoWriter("/home/chekkaa/git/rob421-applied-robotics/stream.avi", cv.CV_FOURCC(*'MJPG'), 60.0, (640, 480), True)
 
     while True:
         ret, img = cam.read()
@@ -87,6 +88,8 @@ if __name__ == '__main__':
         cv2.imshow('binary', visbinimg)
         cv2.imshow('contours', binimg)
         cv2.imshow('raw', img)
+
+        #stream.write(img)
 
         if 0xFF & cv2.waitKey(5) == 27:
             break
