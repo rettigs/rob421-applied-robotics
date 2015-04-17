@@ -1,0 +1,32 @@
+loading mechanism:
+    - computer tells microcontroller to "reload"
+    - microcontroller handles entire reload
+carriage moving mechanism:
+    - computer tells microcontroller whether to move left or right, or to stop
+    - microcontroller just does what its told
+    - ex: computer can see that the cup is to the left, and will move left until the cup is in the middle of the camera, then stop
+lauching mechanism:
+    - computer tells microcontroller when to start/stop and what speed/direction
+    - microcontroller just does what its told
+swatting mechanism:
+    -
+
+Number of bytes sent over USART needs to be minimized to stay fast, reduce corruption, and not overload the microcontroller
+
+Data packet format:
+
+TTIIIIID MMMMMMMM
+
+T = Type of packet (00 = motor/sensor, 01 = reload, 10 = swat)
+I = ID of device (0 = launch motor, 1 = carriage motor, others tba)
+D = Direction bit (0 = forward, 1 = backward)
+M = Magnitude (e.g. motor speed or sensor reading)
+
+Second byte (magnitude), ID, and direction bits are only required for motor/sensor packets.  Second byte will not be sent, and the ID and direction bits are just "don't care"
+Motor packets are sent from computer to microcontroller
+Sensor packets are sent from microcontroller to computer
+
+
+
+todo:
+    - test failure rate of serial communication
