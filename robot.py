@@ -17,12 +17,16 @@ speeds = {}
 
 port = serial.Serial("/dev/ttyACM0", baudrate=9600, timeout=3.0)
 
-def updateSpeed(deviceid):
-    packet = port.read(2)
-    byte1, byte2 = map(int, packet)
+def readPackets():
+    while port.inWaiting() > 0:
+        packet = port.read(2)
+        byte1, byte2 = map(int, packet)
+        deviceid = byte1 << (8 - OFFSET_TYPE) >> (8 - OFFSET_TYPE + OFFSET_ID) << OFFSET_ID
+        magnitude = byte2
+        print "device {} updated with magnitude {}".format(deviceid, magnitude)
 
 def getSpeed(deviceid):
-    return speeds[motorid]
+    return speeds[deviceid]
 
 def setSpeed(deviceid, speed=0, direction=0):
     byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (deviceid << OFFSET_ID) | (direction << OFFSET_DIRECTION)
@@ -33,5 +37,12 @@ def setSpeed(deviceid, speed=0, direction=0):
     port.write(bytes([byte1, byte2]))
 
 while True:
+    readPackets()
+    print getSpeed(1)
     setSpeed(1, 255, 0)
+    time.sleep(1)
+
+    readPackets()
+    print getSpeed(1)
+    setSpeed(1, 0, 0)
     time.sleep(1)
