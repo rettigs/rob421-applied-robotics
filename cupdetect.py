@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
+from __future__ import division
+import math
 import random as rand
+
 import numpy as np
 import cv2
 import cv2.cv as cv
@@ -16,32 +19,22 @@ def isEllipse(contour):
     (x, y), (w, h), angle = rect # x offset, y offset, width, height, angle
     w, h = h, w # Switch them since our ellipses are usually rotated 90 degrees
 
-    # Draw TEST_INSIDE points inside the ellipse and TEST_OUTSIDE points outside and see if they're in the hull
-    TEST_INSIDE = 10
-    TEST_OUTSIDE = 10
+    TEST_POINTS = 16
+    E = 0.1 # Radius percentage increase/decrease for test points
+    MIN_SUCC_RATE = 0.9
+    successes = 0
 
-    # Equation of ellipse: (x/a)^2 + (y/b)^2 = 1
+    for a in np.arange(0, 2*math.pi, 2*math.pi/TEST_POINTS):
+        ipoint = (x+0.5*w*math.cos(a)*(1-E), y+0.5*h*math.sin(a)*(1-E))
+        opoint = (x+0.5*w*math.cos(a)*(1+E), y+0.5*h*math.sin(a)*(1+E))
+        test = cv2.pointPolygonTest(contour, ipoint, False)
+        if cv2.pointPolygonTest(contour, ipoint, False) > 0: # The inside point is inside
+            successes += 1
+        if cv2.pointPolygonTest(contour, opoint, False) < 0: # The outside point is outside
+            successes += 1
 
-    e = 0.1
-    
-    tests = []
-    tests.append(cv2.pointPolygonTest(contour, (x, y), False))
-
-    tests.append(cv2.pointPolygonTest(contour, (x+w*(0.5-e), y), False))
-    tests.append(cv2.pointPolygonTest(contour, (x-w*(0.5-e), y), False))
-    tests.append(cv2.pointPolygonTest(contour, (x, y+h*(0.5-e)), False))
-    tests.append(cv2.pointPolygonTest(contour, (x, y-h*(0.5-e)), False))
-
-    tests.append(not cv2.pointPolygonTest(contour, (x+w*(0.5-e), y+h*(0.5-e)), False))
-    tests.append(not cv2.pointPolygonTest(contour, (x+w*(0.5-e), y-h*(0.5-e)), False))
-    tests.append(not cv2.pointPolygonTest(contour, (x-w*(0.5-e), y+h*(0.5-e)), False))
-    tests.append(not cv2.pointPolygonTest(contour, (x-w*(0.5-e), y-h*(0.5-e)), False))
-
-    for test in tests:
-        if test == -1.0:
-            return False
-
-    return True
+    succ_rate = successes / (TEST_POINTS * 2)
+    return succ_rate >= MIN_SUCC_RATE
 
 if __name__ == '__main__':
     import sys, getopt
