@@ -15,7 +15,8 @@ USAGE: cupdetect.py [<video_source>]
 '''
 
 def isEllipse(contour):
-    rect = cv2.fitEllipse(contour) # Rotated rectangle representing the ellipse it tries to fit
+    try: rect = cv2.fitEllipse(contour) # Rotated rectangle representing the ellipse it tries to fit
+    except: pass
     (x, y), (w, h), angle = rect # x offset, y offset, width, height, angle
     w, h = h, w # Switch them since our ellipses are usually rotated 90 degrees
 
