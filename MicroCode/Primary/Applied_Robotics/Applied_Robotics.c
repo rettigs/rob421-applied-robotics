@@ -14,20 +14,6 @@
 //#define F_CPU 16000000
 //#define BAUD 115200
 
-typedef enum {
-	INIT,
-	MYTURN,
-	IDCUP,
-	TAKEAIM,
-	LAUNCHBALL,
-	HITMISS,
-	ERRORCORRECTION,
-	TRACKBALL,
-	BLOCKSHOT
-	
-} states;
-
-states state = INIT;
 uint8_t lowByte, highByte = 0;
 uint16_t prevTimeStamp, timeStamp = 0; 
 
@@ -302,6 +288,24 @@ void PIDsetControllerDirection(int Direction)
 	controllerDirection = Direction;
 }
 
+void PIDenable(void){
+	//Turn on PID and start setting it
+	//Allow PID to automatically control settings
+	PIDsetMode(AUTOMATIC);
+	//Positive proportional control
+	PIDsetControllerDirection(DIRECT);
+	//set sample time in ms - should be handled in interrupt?
+	PIDsetSampleTime(50);
+	//Minimum and Maximum output values
+	PIDsetOutputLimits(0,255);
+	//Set PID params (Kp, Ki, Kd)
+	PIDsetTunings(6,0.6,0.6);
+	//Start controller
+	PIDinitialize();
+	//Set Setpoint to 0 RPM
+	Setpoint = 0;
+}
+
 int main(void)
 {
 	uartInit();
@@ -318,28 +322,14 @@ int main(void)
 	
     while(1)
 	    {
-		switch(state){
-			case INIT:
-				uartInit();
-//				uartSends("Is it my turn?\nEnter '2' to start targeting mode\n");
-				
-				state = MYTURN;
-				break;
-			
-			case MYTURN:
 				if(i >= 2){
 					uartSendc(uartData[0]);
 					uartSendc(uartData[1]);
 					if(uartData[0] == 1){
-//						uartSendc(0b00000001);
-//						uartSendc(uartData[1]);
 						PORTB |= (1<<PB5);
 						OCR2A = uartData[1];
 					}				
 					if(uartData[0] == 2){
-//						uartSends("Test\n");
-						uartSendc(0b00000010);
-						uartSendc(uartData[1]);
 //						rampMotorSpeed(uartData[1]);
 						OCR2A = uartData[1];
 						PORTB &= ~(1<<PB5);
@@ -347,89 +337,11 @@ int main(void)
 					if(uartData[0] == 3){
 						uartSends("To IDCUP\n");
 						PORTB &= ~(1<<PB7);
-						state = IDCUP;
-						break;
-					} else {state = MYTURN;} 
+					} 
 					i = 0;
-				}else {state = MYTURN;}
+				}
 				_delay_ms(250);
-				state = MYTURN; 
-				break;
-			
-			case IDCUP:
-				uartSends("In IDCUP\n");
-				state = TAKEAIM;
-				break;
-				
-			case TAKEAIM:
-				//Turn on PID and start setting it
-				//Allow PID to automatically control settings
-				PIDsetMode(AUTOMATIC);
-				//Positive proportional control
-				PIDsetControllerDirection(DIRECT);
-				//set sample time in ms - should be handled in interrupt?
-				PIDsetSampleTime(50);
-				//Minimum and Maximum output values
-				PIDsetOutputLimits(0,255);
-				//Set PID params (Kp, Ki, Kd)
-				PIDsetTunings(6,0.6,0.6);
-				//Start controller
-				PIDinitialize();			
-				//Set Setpoint to 0 RPM
-				Setpoint = 0;
-				
-				state = LAUNCHBALL;
-				break;
-				
-				
-			case LAUNCHBALL:
-				//Write print tachometer output
-				//Number of cycles divided by (16000000/1024)
-//				RPM = 60/(timeStamp/ 15625);
-//				uartSendc(rotation);
-
-				if(i >= 2){
-					if(uartData[0] == 1){
-						//go back to beginning
-						PIDsetMode(MANUAL);
-						state = MYTURN;
-						break;
-					}
-					if(uartData[0] == 3){
-						uartSendc(uartData[1]);
-						//byte 1 is setpoint
-						Setpoint = (uartData[1]);
-						uartSendc((uint8_t)Setpoint);
-					}
-					i = 0;
-				}else {	state = LAUNCHBALL;}
-				_delay_ms(100);
-				state = LAUNCHBALL;
-				break;
-				
-				
-			case HITMISS:
-			
-				state = ERRORCORRECTION;
-				break;
-				
-			case ERRORCORRECTION:
-				uartSends("Correcting errors! Try again!");
-				state = MYTURN;
-				break;
-				
-			case TRACKBALL:
-			
-				state = BLOCKSHOT;
-				break;
-				
-			case BLOCKSHOT:
-			
-				state = MYTURN;
-				break;
-		
 		}
-    }
 }
 
 
@@ -469,18 +381,12 @@ ISR(TIMER0_OVF_vect){
 
 ISR(INT4_vect){
 	rotation++;
-//	PORTB ^= (1<<PB7);
-//	_delay_ms(1);
 }
 
 ISR(USART0_RX_vect){
-//	receivedByte = UDR0;
-//	UDR0 = receivedByte;
 	uartData[i] = UDR0;
-//	uartSendc(255);
 	i++;
 	if(i >= 2){
 		uartPacketReady = true;
 	}
-//	OCR2A = UDR0;
 }
