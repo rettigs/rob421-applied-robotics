@@ -111,27 +111,8 @@ void timer2Init(){
 	OCR2A = 0; 
 	//set OCA2(PB4) to output
 	DDRB |= (1<<PB4); 
-//	PORTB |= (1<<PB4);
 		
 }
-/*
-void timer1Init(void){
-	// Timer frequency is 160000000/1024 = 15625Hz
-	//Normal operation 
-	TCCR1A |= 0x00;
-	//Trigger on rising edge, prescaler 1024
-	TCCR1B |= (1<<ICES1) | (1<<CS12) | (1<<CS10);
-	//Enables Input capture interrupt, Enables timer overflow interrupt
-	TIMSK1 |= (1<<ICIE1) | (1<<TOIE1);
-	//clear all interrupt flags.
-	TIFR1 |=  (1<<ICF1) | (1<<TOV1);
-	//Eet counter to 0
-	TCNT1 = 0;
-	//set ICP1(PD4) as input
-	//PD4 is pin 47 on the atmega
-	DDRD &= ~(1<<PD4);
-}
-*/
 
 void externalInterrupts(void){
 	//PE4 is Digital Pin 2
@@ -149,59 +130,32 @@ void externalInterrupts(void){
 }
 
 char uartGetc(void) {
-//	cli();
 	//Gets a byte from UART
 	uint16_t timer = 0;
 	while (!(UCSR0A & (1<<RXC0))) {
 		timer++;
 		if(timer >= 16000) return 0;
 	} // Wait for byte to arrive
-//	sei();
 	return UDR0;
 }
 
 void uartSendc(uint8_t u8Data){
-//	cli();
 	//Sends a byte of data out on UART
-
 	// Wait until last byte has been transmitted
 	while((UCSR0A &(1<<UDRE0)) == 0);
 
 	// Transmit data
 	UDR0 = u8Data;
-//	sei();
 }
 
 void uartSends(char s[]){
-//	cli();
 	//Sends a string our on UART
 	int i = 0;
 	while(s[i] != 0){
 		uartSendc(s[i]);
 		i++;
 	}
-//	sei();
 }
-/*
-void prepareForInterrupts() {
-	 cli();  // protected code
-	 first = true;
-	 triggered = false;  // re-arm for next time
-	 // reset Timer 1
-	 TCCR1A = 0;
-	 TCCR1B = 0;
-
-	 TIFR1 |= (1<<ICF1) | (1<<TOV1);  // clear flags so we don't get a bogus interrupt
-	 TCNT1 = 0;          // Counter to zero
-	 overflowCount = 0;  // Therefore no overflows yet
-
-	 // Timer 1 - counts clock pulses
-	 TIMSK1 |=  (1<<TOIE1) |  (1<<ICIE1);   // interrupt on Timer 1 overflow and input capture
-	 // start Timer 1, no prescaler
-	 TCCR1B |=  (1<<CS10) |  (1<<ICES1);  // plus Input Capture Edge Select (rising on D8)
-	 sei ();
-}
-*/
 
 void rampMotorSpeed(uint8_t newSpeed){
 	static int motorSpeed = 0;
@@ -259,17 +213,12 @@ void driveStepper(uint8_t steps, bool direction){
 	if(direction == 0){
 		
 	}
-	
 }
 
 
 void PIDcompute()
 {
 	if(!inAuto) return;
-//	unsigned long now = millis();
-//	int timeChange = (now - lastTime);
-//	if(timeChange>=SampleTime)
-//	{
 		/*Compute all the working error variables*/
 		double error = Setpoint - PIDinput;
 		ITerm+= (ki * error);
@@ -287,8 +236,6 @@ void PIDcompute()
 		
 		/*Remember some variables for next time*/
 		lastInput = PIDinput;
-//		lastTime = now;
-//	}
 }
 
 void PIDinitialize()
@@ -382,15 +329,12 @@ int main(void)
 			case MYTURN:
 				if(i >= 2){
 					uartSendc(uartData[0]);
-					uartSendc(uartData[1] + 1);
+					uartSendc(uartData[1]);
 					if(uartData[0] == 1){
 //						uartSendc(0b00000001);
 //						uartSendc(uartData[1]);
 						PORTB |= (1<<PB5);
-//						OCR2A = uartData[1];
-						OCR2A = 0xaf;
-						
-						
+						OCR2A = uartData[1];
 					}				
 					if(uartData[0] == 2){
 //						uartSends("Test\n");
@@ -398,7 +342,6 @@ int main(void)
 						uartSendc(uartData[1]);
 //						rampMotorSpeed(uartData[1]);
 						OCR2A = uartData[1];
-//						PORTB ^= (1<<PB5);
 						PORTB &= ~(1<<PB5);
 					}
 					if(uartData[0] == 3){
@@ -406,11 +349,9 @@ int main(void)
 						PORTB &= ~(1<<PB7);
 						state = IDCUP;
 						break;
-					} else {state = MYTURN;}
-//					uartPacketReady = false; 
+					} else {state = MYTURN;} 
 					i = 0;
 				}else {state = MYTURN;}
-//				uartSendc(255);
 				_delay_ms(250);
 				state = MYTURN; 
 				break;
