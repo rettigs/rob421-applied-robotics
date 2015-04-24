@@ -82,13 +82,18 @@ void timer0Init(){
 	
 }
 
+void timer1Init(){
+	//Set up Timer1 as high resolution PWM for launcher control
+}
+
 
 void timer2Init(){
-	//OCA2 is PIN 10 on Arduino.
 	//Fast PWM timer
+	//OC2A is PIN 10 on Arduino.
+	//OC2B is PIN 9 on Arduino. 
 	//Timer will reset when it reaches TOP. 
 	//Clear OCA2 on Compare Match. Set OC2A at bottom. 
-	TCCR2A |= (1<<COM2A1) | (1<<WGM20) | (1<<WGM21);
+	TCCR2A |= (1<<COM2A1) | (1<<COM2B1) | (1<<WGM20) | (1<<WGM21);
 	//Put in PWM waveform Gen mode. Clock divider set to CLK/256
 //	TCCR2B |= (1<<WGM22) | (1<<CS22) | (1<<CS21);
 	TCCR2B |= (1<<CS20); 
@@ -97,21 +102,27 @@ void timer2Init(){
 	OCR2A = 0; 
 	//set OCA2(PB4) to output
 	DDRB |= (1<<PB4); 
+	//set OCB2(PH6) to output
+	DDRH |= (1<<PH6);
 		
 }
 
 void externalInterrupts(void){
 	//PE4 is Digital Pin 2
+	//PE5 is Digital Pin 3
+	//PD2 is Int2 on Digital Pin 19
+	DDRD &= ~(1<<PD2);
+	PORTD |= (1<<PD2);
+	//Set PE5 to input and enable pullup
+	DDRE &= ~(1<<PE5);
+	PORTE |= (1<<PE5);
+	//Trigger INT2 on falling edge
+	EICRA |= (1<<ISC21); 
 	//Set pin 4 to input can be input or output to work
-//	DDRE &= ~(1<<PE4);
-	//Turns on Pin 0 of 
-//	PCMSK0 |= (1<<PCINT7);
-	//Enable interrupt
-//	PCICR |= (1<<PCIE0);
-	//Falling edge on INT4 generates interrupt
-	EICRB |= (1<<ISC41); // comment out so low level sets interrupt
+	//Falling edge on INT4 or rising edge on INT5 generates interrupt
+	EICRB |= (1<<ISC41) | (1<<ISC51); // comment out so low level sets interrupt
 	//Look for interrupts on DIGITAL PIN 4 
-	EIMSK |= (1<<INT4);
+	EIMSK |= (1<<INT4) | (1<<INT5) | (1<<INT2);
 	
 }
 
@@ -323,21 +334,42 @@ int main(void)
     while(1)
 	    {
 				if(i >= 2){
+					//Echo back received data
 					uartSendc(uartData[0]);
 					uartSendc(uartData[1]);
-					if(uartData[0] == 1){
-						PORTB |= (1<<PB5);
-						OCR2A = uartData[1];
-					}				
-					if(uartData[0] == 2){
+					//Serial Command Packet: TTIIIIID
+					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
+					
+					//Motor 0 (launcher) forward control
+					if(uartData[0] == 0b00000000){
+						PORTB &= ~(1<<PB5);
 //						rampMotorSpeed(uartData[1]);
 						OCR2A = uartData[1];
-						PORTB &= ~(1<<PB5);
+					}	
+					//Motor 0 (launcher) backward control			
+					if(uartData[0] == 0b00000001){
+						PORTB |= (1<<PB5);
+						rampMotorSpeed(uartData[1]);
+//						OCR2A = uartData[1];
 					}
-					if(uartData[0] == 3){
-						uartSends("To IDCUP\n");
-						PORTB &= ~(1<<PB7);
-					} 
+					//Reload Command
+					//TT= 01
+					if(uartData[0] == 0b01000000){
+						//Move servo backward.
+						OCR2B = 239;
+						//Set up external interrupt to stop servo when sensor is touched
+						
+						//Reverse direction of Servo and move backward.
+
+					}
+					//Carriage (Motor 1) forward control
+					if(uartData[0] == 0b00000010){
+						//ToDo: need stepper motor/weight estimate for chassis.
+					}
+					//Carriage (Motor 1) backward control
+					if(uartData[0] == 0b00000011){
+						//ToDo: need stepper motor/weight estimate for chassis. 	
+					}
 					i = 0;
 				}
 				_delay_ms(250);
@@ -380,7 +412,19 @@ ISR(TIMER0_OVF_vect){
 }
 
 ISR(INT4_vect){
+	//Optical encoder feedback from Launching motor
+	//Input pin is Digital 2
 	rotation++;
+}
+ISR(INT5_vect){
+	//Forward limit switch - stop the motor from moving.
+	//Switch should be attached to ground and Digital 3
+	OCR2B = 0; 
+}
+ISR(INT2_vect){
+	//Rear limit switch - reverses direction of motor.
+	//Should be attached to ground and Digital 19.
+	OCR2B = 125;
 }
 
 ISR(USART0_RX_vect){

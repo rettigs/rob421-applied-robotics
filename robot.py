@@ -17,7 +17,7 @@ class SerialManager(object):
 
     def __init__(self):
         self.speeds = {}
-        self.port = serial.Serial("/dev/ttyACM0", baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3.0)
+        self.port = serial.Serial(port='COM1', baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3.0)
 
     def bytes_to_strings(self, packet):
         return [format(int(p), '#010b') for p in packet[1:-1].split(', ')]
