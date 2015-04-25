@@ -198,26 +198,27 @@ void driveStepper(uint8_t steps, bool direction){
 	if(direction == 1){
 		for(int i=0; i<steps; i++){
 			PORTC |= (1<<PC2) | (1<<PC3);
-			_delay_ms(5);
+			_delay_ms(2);
 			PORTC &= ~(1<<PC2);
-			_delay_ms(5);
+			_delay_ms(2);
 			PORTC &= ~(1<<PC3);
-			_delay_ms(5);
+			_delay_ms(2);
 			PORTC |= (1<<PC2);
-			_delay_ms(5);
+			_delay_ms(2);
 		}
 	}
 	//Check this order - it grinds the gears/ is jumpy
 	if(direction == 0){
 		for(int i=0; i<steps; i++){
 			PORTC |= (1<<PC2);
-			_delay_ms(5);
 			PORTC &= ~(1<<PC3);
-			_delay_ms(5);
+			_delay_ms(2);
 			PORTC &= ~(1<<PC2);
-			_delay_ms(5);
-			PORTC |= (1<<PC2) | (1<<PC3);
-			_delay_ms(5);
+			_delay_ms(2);
+			PORTC |= (1<<PC3);
+			_delay_ms(2);
+			PORTC |= (1<<PC2);
+			_delay_ms(2);
 		}
 	}
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
@@ -367,7 +368,7 @@ int main(void)
 					//TT= 01
 					if(uartData[0] == 0b01000000){
 						//Move servo backward.
-						OCR2B = 239;
+						OCR2B = 60;
 						//Set up external interrupt to stop servo when sensor is touched
 						
 						//Reverse direction of Servo and move backward.
@@ -439,7 +440,7 @@ ISR(INT5_vect){
 ISR(INT2_vect){
 	//Rear limit switch - reverses direction of motor.
 	//Should be attached to ground and Digital 19.
-	OCR2B = 125;
+	OCR2B = 239;
 }
 
 ISR(USART0_RX_vect){
