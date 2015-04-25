@@ -440,6 +440,8 @@ ISR(INT5_vect){
 ISR(INT2_vect){
 	//Rear limit switch - reverses direction of motor.
 	//Should be attached to ground and Digital 19.
+	OCR2B = 0;
+	_delay_ms(250);
 	OCR2B = 239;
 }
 
