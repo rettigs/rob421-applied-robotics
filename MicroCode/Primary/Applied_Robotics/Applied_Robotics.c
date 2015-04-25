@@ -193,22 +193,34 @@ void driveStepper(uint8_t steps, bool direction){
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
 	PORTC |= (1<<PC0) | (1<<PC1);
 	//PC0-PC3 are used for stepper control
-	//PC0=37,   PC1=36,   PC2=35,   PC3=34 
+	//PC0=37=E2,   PC1=36=E1,   PC2=35=M2,   PC3=34=M1 
+	//direction = 1 is counter clockwise
 	if(direction == 1){
 		for(int i=0; i<steps; i++){
 			PORTC |= (1<<PC2) | (1<<PC3);
-			_delay_ms(15);
+			_delay_ms(5);
 			PORTC &= ~(1<<PC2);
-			_delay_ms(15);
+			_delay_ms(5);
 			PORTC &= ~(1<<PC3);
-			_delay_ms(15);
+			_delay_ms(5);
 			PORTC |= (1<<PC2);
-			_delay_ms(15);
+			_delay_ms(5);
 		}
 	}
+	//Check this order - it grinds the gears/ is jumpy
 	if(direction == 0){
-		
+		for(int i=0; i<steps; i++){
+			PORTC |= (1<<PC2);
+			_delay_ms(5);
+			PORTC &= ~(1<<PC3);
+			_delay_ms(5);
+			PORTC &= ~(1<<PC2);
+			_delay_ms(5);
+			PORTC |= (1<<PC2) | (1<<PC3);
+			_delay_ms(5);
+		}
 	}
+	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
 }
  
 
@@ -364,11 +376,14 @@ int main(void)
 					//Carriage (Motor 1) forward control
 					if(uartData[0] == 0b00000010){
 						//ToDo: need stepper motor/weight estimate for chassis.
+						//counterclockwise rotation
 						driveStepper(uartData[1], 1);
 					}
 					//Carriage (Motor 1) backward control
 					if(uartData[0] == 0b00000011){
 						//ToDo: need stepper motor/weight estimate for chassis. 	
+						//clockwise rotation
+						driveStepper(uartData[1], 0);
 					}
 					i = 0;
 				}
