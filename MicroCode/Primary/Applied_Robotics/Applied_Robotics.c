@@ -191,27 +191,26 @@ void driveStepper(uint8_t steps, bool direction){
 	*/
 	//Reset PC0-PC3 to zero
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
+	PORTC |= (1<<PC0) | (1<<PC1);
 	//PC0-PC3 are used for stepper control
 	//PC0=37,   PC1=36,   PC2=35,   PC3=34 
 	if(direction == 1){
-		//start with 1 on and 3 off. 
-//		PORTC |= (1<<PC0);
-//		PORTC &= ~((1<<PC1) | (1<<PC3) | (1<<PC2));
 		for(int i=0; i<steps; i++){
-			PORTC = 0b00000001;
+			PORTC |= (1<<PC2) | (1<<PC3);
 			_delay_ms(15);
-			PORTC = 0b00000100;
+			PORTC &= ~(1<<PC2);
 			_delay_ms(15);
-			PORTC = 0b00000010;
+			PORTC &= ~(1<<PC3);
 			_delay_ms(15);
-			PORTC = 0b00001000;
+			PORTC |= (1<<PC2);
+			_delay_ms(15);
 		}
 	}
 	if(direction == 0){
 		
 	}
 }
-
+ 
 
 void PIDcompute()
 {
@@ -365,6 +364,7 @@ int main(void)
 					//Carriage (Motor 1) forward control
 					if(uartData[0] == 0b00000010){
 						//ToDo: need stepper motor/weight estimate for chassis.
+						driveStepper(uartData[1], 1);
 					}
 					//Carriage (Motor 1) backward control
 					if(uartData[0] == 0b00000011){
