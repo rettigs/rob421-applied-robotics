@@ -15,6 +15,10 @@ USAGE: cupdetect.py [<video_source>]
 '''
 
 def isEllipse(contour):
+    '''
+    Detects if the given polygon is an ellipse.
+    Returns the ellipse form of the polygon if it's an ellipse, None otherwise.
+    '''
     try: rect = cv2.fitEllipse(contour) # Rotated rectangle representing the ellipse it tries to fit
     except: pass
     (x, y), (w, h), angle = rect # x offset, y offset, width, height, angle
@@ -35,7 +39,10 @@ def isEllipse(contour):
             successes += 1
 
     succ_rate = successes / (TEST_POINTS * 2)
-    return succ_rate >= MIN_SUCC_RATE
+    if succ_rate >= MIN_SUCC_RATE:
+        return rect
+    else:
+        return None
 
 if __name__ == '__main__':
     import sys, getopt
@@ -48,6 +55,8 @@ if __name__ == '__main__':
 
     cam = create_capture(video_src)
     #stream = cv2.VideoWriter("/home/chekkaa/git/rob421-applied-robotics/stream.avi", cv.CV_FOURCC(*'MJPG'), 60.0, (640, 480), True)
+
+    shapes = [] # List of tracked shapes
 
     while True:
         ret, img = cam.read()
@@ -65,8 +74,10 @@ if __name__ == '__main__':
         cup_contours = []
         for contour in contours:
             contour_area = cv2.contourArea(contour)
-            if contour_area > 100 and contour_area < 800 and isEllipse(contour):
-                cup_contours.append(contour)
+            if contour_area > 100 and contour_area < 800:
+                ellipse = isEllipse(contour)
+                if ellipse:
+                    cup_contours.append(contour)
 
         color = (255, 0, 0) # Color is BGR, not RBG!
         cv2.drawContours(img, cup_contours, -1, color, thickness=-1)
@@ -74,11 +85,11 @@ if __name__ == '__main__':
         dt = clock() - t # Stop timing how long it took to process this frame
 
         # Show the images
-        draw_str(grayimg, (20, 20), 'time: %.1f ms' % (dt*1000))
+        #draw_str(grayimg, (20, 20), 'time: %.1f ms' % (dt*1000))
         draw_str(visbinimg, (20, 20), 'time: %.1f ms' % (dt*1000))
         draw_str(binimg, (20, 20), 'time: %.1f ms' % (dt*1000))
         draw_str(img, (20, 20), 'time: %.1f ms' % (dt*1000))
-        cv2.imshow('grayscale', grayimg)
+        #cv2.imshow('grayscale', grayimg)
         cv2.imshow('binary', visbinimg)
         cv2.imshow('contours', binimg)
         cv2.imshow('raw', img)
@@ -88,3 +99,20 @@ if __name__ == '__main__':
         if 0xFF & cv2.waitKey(5) == 27:
             break
     cv2.destroyAllWindows()
+
+class Ellipse(object):
+    '''
+    Represents an ellipse in (x, y, w, h, a) format.
+    Stores a number of "previous" shapes in an attempt to track the shape.
+    '''
+
+    HISTORY = 30
+    
+    def __init__(self):
+        self.ellipses = []
+
+    def add_frame(self, ellipse):
+        self.ellipses.append(ellipse)
+        while len(self.ellipses) > HISTORY:
+            self.ellipses.pop(0)
+
