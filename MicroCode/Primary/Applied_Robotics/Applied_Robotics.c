@@ -83,7 +83,12 @@ void timer0Init(){
 }
 
 void timer1Init(){
-	//Set up Timer1 as high resolution PWM for launcher control
+	//Set up Timer1 as high resolution PWM for launcher/ servo
+	//Fast PWM Top set by OCR1A (Non-Inverting PWM)
+	TCCR1A |= (1<<COM1A1) | (1<<COM1B1) | (1<<WGM11) | (1<<WGM10);
+	//
+	TCCR1B |= (1<<WGM12) | (1<<WGM12);
+	
 }
 
 
@@ -353,12 +358,14 @@ int main(void)
 					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
 					
 					//Motor 0 (launcher) forward control
+					//HEX CODE: 00 XX
 					if(uartData[0] == 0b00000000){
 						PORTB &= ~(1<<PB5);
 //						rampMotorSpeed(uartData[1]);
 						OCR2A = uartData[1];
 					}	
-					//Motor 0 (launcher) backward control			
+					//Motor 0 (launcher) backward control
+					//HEX CODE: 01	XX		
 					if(uartData[0] == 0b00000001){
 						PORTB |= (1<<PB5);
 						rampMotorSpeed(uartData[1]);
@@ -366,8 +373,10 @@ int main(void)
 					}
 					//Reload Command
 					//TT= 01
+					//HEX CODE: 40 00
 					if(uartData[0] == 0b01000000){
 						//Move servo backward.
+//						OCR2B = uartData[1];
 						OCR2B = 60;
 						//Set up external interrupt to stop servo when sensor is touched
 						
@@ -375,12 +384,14 @@ int main(void)
 
 					}
 					//Carriage (Motor 1) forward control
+					//HEX CODE: 02 XX
 					if(uartData[0] == 0b00000010){
 						//ToDo: need stepper motor/weight estimate for chassis.
 						//counterclockwise rotation
 						driveStepper(uartData[1], 1);
 					}
 					//Carriage (Motor 1) backward control
+					//HEX CODE: 03 XX
 					if(uartData[0] == 0b00000011){
 						//ToDo: need stepper motor/weight estimate for chassis. 	
 						//clockwise rotation
@@ -436,12 +447,14 @@ ISR(INT5_vect){
 	//Forward limit switch - stop the motor from moving.
 	//Switch should be attached to ground and Digital 3
 	OCR2B = 0; 
+//	uartSendc(0xff);
 }
 ISR(INT2_vect){
 	//Rear limit switch - reverses direction of motor.
 	//Should be attached to ground and Digital 19.
 	OCR2B = 0;
-	_delay_ms(250);
+//	uartSendc(0x0f);
+	_delay_ms(100);
 	OCR2B = 239;
 }
 

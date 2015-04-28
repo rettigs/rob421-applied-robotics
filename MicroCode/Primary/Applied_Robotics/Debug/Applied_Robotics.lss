@@ -3,27 +3,27 @@ Applied_Robotics.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .text         0000051a  00000000  00000000  00000074  2**1
+  0 .text         00000586  00000000  00000000  00000074  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  1 .bss          0000004b  00800200  00800200  0000058e  2**0
+  1 .bss          0000004b  00800200  00800200  000005fa  2**0
                   ALLOC
-  2 .comment      00000030  00000000  00000000  0000058e  2**0
+  2 .comment      00000030  00000000  00000000  000005fa  2**0
                   CONTENTS, READONLY
-  3 .debug_aranges 000000d8  00000000  00000000  000005be  2**0
+  3 .debug_aranges 000000d8  00000000  00000000  0000062a  2**0
                   CONTENTS, READONLY, DEBUGGING
-  4 .debug_info   00000af6  00000000  00000000  00000696  2**0
+  4 .debug_info   00000b1e  00000000  00000000  00000702  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_abbrev 0000038c  00000000  00000000  0000118c  2**0
+  5 .debug_abbrev 0000037d  00000000  00000000  00001220  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_line   00000801  00000000  00000000  00001518  2**0
+  6 .debug_line   00000819  00000000  00000000  0000159d  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_frame  00000398  00000000  00000000  00001d1c  2**2
+  7 .debug_frame  00000400  00000000  00000000  00001db8  2**2
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_str    0000045f  00000000  00000000  000020b4  2**0
+  8 .debug_str    0000045f  00000000  00000000  000021b8  2**0
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_loc    00000b3f  00000000  00000000  00002513  2**0
+  9 .debug_loc    00000c50  00000000  00000000  00002617  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_ranges 000000c8  00000000  00000000  00003052  2**0
+ 10 .debug_ranges 000000c8  00000000  00000000  00003267  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -35,7 +35,7 @@ Disassembly of section .text:
    6:	00 00       	nop
    8:	8c c0       	rjmp	.+280    	; 0x122 <__bad_interrupt>
    a:	00 00       	nop
-   c:	3e c2       	rjmp	.+1148   	; 0x48a <__vector_3>
+   c:	5c c2       	rjmp	.+1208   	; 0x4c6 <__vector_3>
    e:	00 00       	nop
   10:	88 c0       	rjmp	.+272    	; 0x122 <__bad_interrupt>
   12:	00 00       	nop
@@ -79,7 +79,7 @@ Disassembly of section .text:
   5e:	00 00       	nop
   60:	60 c0       	rjmp	.+192    	; 0x122 <__bad_interrupt>
   62:	00 00       	nop
-  64:	30 c2       	rjmp	.+1120   	; 0x4c6 <__vector_25>
+  64:	66 c2       	rjmp	.+1228   	; 0x532 <__vector_25>
   66:	00 00       	nop
   68:	5c c0       	rjmp	.+184    	; 0x122 <__bad_interrupt>
   6a:	00 00       	nop
@@ -158,7 +158,7 @@ Disassembly of section .text:
   f4:	12 e0       	ldi	r17, 0x02	; 2
   f6:	a0 e0       	ldi	r26, 0x00	; 0
   f8:	b2 e0       	ldi	r27, 0x02	; 2
-  fa:	ea e1       	ldi	r30, 0x1A	; 26
+  fa:	e6 e8       	ldi	r30, 0x86	; 134
   fc:	f5 e0       	ldi	r31, 0x05	; 5
   fe:	00 e0       	ldi	r16, 0x00	; 0
  100:	0b bf       	out	0x3b, r16	; 59
@@ -183,7 +183,7 @@ Disassembly of section .text:
  11a:	b2 07       	cpc	r27, r18
  11c:	e1 f7       	brne	.-8      	; 0x116 <.do_clear_bss_loop>
  11e:	ef d0       	rcall	.+478    	; 0x2fe <main>
- 120:	fa c1       	rjmp	.+1012   	; 0x516 <_exit>
+ 120:	30 c2       	rjmp	.+1120   	; 0x582 <_exit>
 
 00000122 <__bad_interrupt>:
  122:	6e cf       	rjmp	.-292    	; 0x0 <__vectors>
@@ -442,11 +442,11 @@ int main(void)
 		
 	sei();
  312:	78 94       	sei
-					}
-					//Reload Command
 					//TT= 01
+					//HEX CODE: 40 00
 					if(uartData[0] == 0b01000000){
 						//Move servo backward.
+//						OCR2B = uartData[1];
 						OCR2B = 60;
  314:	cc e3       	ldi	r28, 0x3C	; 60
 		
@@ -469,6 +469,7 @@ int main(void)
 					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
 					
 					//Motor 0 (launcher) forward control
+					//HEX CODE: 00 XX
 					if(uartData[0] == 0b00000000){
  32a:	80 91 04 02 	lds	r24, 0x0204
  32e:	81 11       	cpse	r24, r1
@@ -480,7 +481,8 @@ int main(void)
  334:	80 91 05 02 	lds	r24, 0x0205
  338:	80 93 b3 00 	sts	0x00B3, r24
 					}	
-					//Motor 0 (launcher) backward control			
+					//Motor 0 (launcher) backward control
+					//HEX CODE: 01	XX		
 					if(uartData[0] == 0b00000001){
  33c:	80 91 04 02 	lds	r24, 0x0204
  340:	81 30       	cpi	r24, 0x01	; 1
@@ -494,18 +496,20 @@ int main(void)
 					}
 					//Reload Command
 					//TT= 01
+					//HEX CODE: 40 00
 					if(uartData[0] == 0b01000000){
  34c:	80 91 04 02 	lds	r24, 0x0204
  350:	80 34       	cpi	r24, 0x40	; 64
  352:	11 f4       	brne	.+4      	; 0x358 <main+0x5a>
 						//Move servo backward.
+//						OCR2B = uartData[1];
 						OCR2B = 60;
  354:	c0 93 b4 00 	sts	0x00B4, r28
-						
 						//Reverse direction of Servo and move backward.
 
 					}
 					//Carriage (Motor 1) forward control
+					//HEX CODE: 02 XX
 					if(uartData[0] == 0b00000010){
  358:	80 91 04 02 	lds	r24, 0x0204
  35c:	82 30       	cpi	r24, 0x02	; 2
@@ -518,6 +522,7 @@ int main(void)
  366:	75 df       	rcall	.-278    	; 0x252 <driveStepper>
 					}
 					//Carriage (Motor 1) backward control
+					//HEX CODE: 03 XX
 					if(uartData[0] == 0b00000011){
  368:	80 91 04 02 	lds	r24, 0x0204
  36c:	83 30       	cpi	r24, 0x03	; 3
@@ -688,57 +693,50 @@ ISR(INT5_vect){
  476:	0f b6       	in	r0, 0x3f	; 63
  478:	0f 92       	push	r0
  47a:	11 24       	eor	r1, r1
+ 47c:	0b b6       	in	r0, 0x3b	; 59
+ 47e:	0f 92       	push	r0
+ 480:	2f 93       	push	r18
+ 482:	3f 93       	push	r19
+ 484:	4f 93       	push	r20
+ 486:	5f 93       	push	r21
+ 488:	6f 93       	push	r22
+ 48a:	7f 93       	push	r23
+ 48c:	8f 93       	push	r24
+ 48e:	9f 93       	push	r25
+ 490:	af 93       	push	r26
+ 492:	bf 93       	push	r27
+ 494:	ef 93       	push	r30
+ 496:	ff 93       	push	r31
 	//Forward limit switch - stop the motor from moving.
 	//Switch should be attached to ground and Digital 3
 	OCR2B = 0; 
- 47c:	10 92 b4 00 	sts	0x00B4, r1
+ 498:	10 92 b4 00 	sts	0x00B4, r1
+	uartSendc(0xff);
+ 49c:	8f ef       	ldi	r24, 0xFF	; 255
+ 49e:	84 de       	rcall	.-760    	; 0x1a8 <uartSendc>
 }
- 480:	0f 90       	pop	r0
- 482:	0f be       	out	0x3f, r0	; 63
- 484:	0f 90       	pop	r0
- 486:	1f 90       	pop	r1
- 488:	18 95       	reti
-
-0000048a <__vector_3>:
-ISR(INT2_vect){
- 48a:	1f 92       	push	r1
- 48c:	0f 92       	push	r0
- 48e:	0f b6       	in	r0, 0x3f	; 63
- 490:	0f 92       	push	r0
- 492:	11 24       	eor	r1, r1
- 494:	2f 93       	push	r18
- 496:	8f 93       	push	r24
- 498:	9f 93       	push	r25
-	//Rear limit switch - reverses direction of motor.
-	//Should be attached to ground and Digital 19.
-	OCR2B = 0;
- 49a:	10 92 b4 00 	sts	0x00B4, r1
- 49e:	2f ef       	ldi	r18, 0xFF	; 255
- 4a0:	84 e3       	ldi	r24, 0x34	; 52
- 4a2:	9c e0       	ldi	r25, 0x0C	; 12
- 4a4:	21 50       	subi	r18, 0x01	; 1
- 4a6:	80 40       	sbci	r24, 0x00	; 0
- 4a8:	90 40       	sbci	r25, 0x00	; 0
- 4aa:	e1 f7       	brne	.-8      	; 0x4a4 <__vector_3+0x1a>
- 4ac:	00 c0       	rjmp	.+0      	; 0x4ae <__vector_3+0x24>
- 4ae:	00 00       	nop
-	_delay_ms(250);
-	OCR2B = 239;
- 4b0:	8f ee       	ldi	r24, 0xEF	; 239
- 4b2:	80 93 b4 00 	sts	0x00B4, r24
-}
- 4b6:	9f 91       	pop	r25
- 4b8:	8f 91       	pop	r24
- 4ba:	2f 91       	pop	r18
+ 4a0:	ff 91       	pop	r31
+ 4a2:	ef 91       	pop	r30
+ 4a4:	bf 91       	pop	r27
+ 4a6:	af 91       	pop	r26
+ 4a8:	9f 91       	pop	r25
+ 4aa:	8f 91       	pop	r24
+ 4ac:	7f 91       	pop	r23
+ 4ae:	6f 91       	pop	r22
+ 4b0:	5f 91       	pop	r21
+ 4b2:	4f 91       	pop	r20
+ 4b4:	3f 91       	pop	r19
+ 4b6:	2f 91       	pop	r18
+ 4b8:	0f 90       	pop	r0
+ 4ba:	0b be       	out	0x3b, r0	; 59
  4bc:	0f 90       	pop	r0
  4be:	0f be       	out	0x3f, r0	; 63
  4c0:	0f 90       	pop	r0
  4c2:	1f 90       	pop	r1
  4c4:	18 95       	reti
 
-000004c6 <__vector_25>:
-
-ISR(USART0_RX_vect){
+000004c6 <__vector_3>:
+ISR(INT2_vect){
  4c6:	1f 92       	push	r1
  4c8:	0f 92       	push	r0
  4ca:	0f b6       	in	r0, 0x3f	; 63
@@ -746,42 +744,105 @@ ISR(USART0_RX_vect){
  4ce:	11 24       	eor	r1, r1
  4d0:	0b b6       	in	r0, 0x3b	; 59
  4d2:	0f 92       	push	r0
- 4d4:	8f 93       	push	r24
- 4d6:	ef 93       	push	r30
- 4d8:	ff 93       	push	r31
+ 4d4:	2f 93       	push	r18
+ 4d6:	3f 93       	push	r19
+ 4d8:	4f 93       	push	r20
+ 4da:	5f 93       	push	r21
+ 4dc:	6f 93       	push	r22
+ 4de:	7f 93       	push	r23
+ 4e0:	8f 93       	push	r24
+ 4e2:	9f 93       	push	r25
+ 4e4:	af 93       	push	r26
+ 4e6:	bf 93       	push	r27
+ 4e8:	ef 93       	push	r30
+ 4ea:	ff 93       	push	r31
+	//Rear limit switch - reverses direction of motor.
+	//Should be attached to ground and Digital 19.
+	OCR2B = 0;
+ 4ec:	10 92 b4 00 	sts	0x00B4, r1
+	uartSendc(0x0f);
+ 4f0:	8f e0       	ldi	r24, 0x0F	; 15
+ 4f2:	5a de       	rcall	.-844    	; 0x1a8 <uartSendc>
+ 4f4:	2f ef       	ldi	r18, 0xFF	; 255
+ 4f6:	81 ee       	ldi	r24, 0xE1	; 225
+ 4f8:	94 e0       	ldi	r25, 0x04	; 4
+ 4fa:	21 50       	subi	r18, 0x01	; 1
+ 4fc:	80 40       	sbci	r24, 0x00	; 0
+ 4fe:	90 40       	sbci	r25, 0x00	; 0
+ 500:	e1 f7       	brne	.-8      	; 0x4fa <__vector_3+0x34>
+ 502:	00 c0       	rjmp	.+0      	; 0x504 <__vector_3+0x3e>
+ 504:	00 00       	nop
+	_delay_ms(100);
+	OCR2B = 239;
+ 506:	8f ee       	ldi	r24, 0xEF	; 239
+ 508:	80 93 b4 00 	sts	0x00B4, r24
+}
+ 50c:	ff 91       	pop	r31
+ 50e:	ef 91       	pop	r30
+ 510:	bf 91       	pop	r27
+ 512:	af 91       	pop	r26
+ 514:	9f 91       	pop	r25
+ 516:	8f 91       	pop	r24
+ 518:	7f 91       	pop	r23
+ 51a:	6f 91       	pop	r22
+ 51c:	5f 91       	pop	r21
+ 51e:	4f 91       	pop	r20
+ 520:	3f 91       	pop	r19
+ 522:	2f 91       	pop	r18
+ 524:	0f 90       	pop	r0
+ 526:	0b be       	out	0x3b, r0	; 59
+ 528:	0f 90       	pop	r0
+ 52a:	0f be       	out	0x3f, r0	; 63
+ 52c:	0f 90       	pop	r0
+ 52e:	1f 90       	pop	r1
+ 530:	18 95       	reti
+
+00000532 <__vector_25>:
+
+ISR(USART0_RX_vect){
+ 532:	1f 92       	push	r1
+ 534:	0f 92       	push	r0
+ 536:	0f b6       	in	r0, 0x3f	; 63
+ 538:	0f 92       	push	r0
+ 53a:	11 24       	eor	r1, r1
+ 53c:	0b b6       	in	r0, 0x3b	; 59
+ 53e:	0f 92       	push	r0
+ 540:	8f 93       	push	r24
+ 542:	ef 93       	push	r30
+ 544:	ff 93       	push	r31
 	uartData[i] = UDR0;
- 4da:	e0 91 03 02 	lds	r30, 0x0203
- 4de:	f0 e0       	ldi	r31, 0x00	; 0
- 4e0:	80 91 c6 00 	lds	r24, 0x00C6
- 4e4:	ec 5f       	subi	r30, 0xFC	; 252
- 4e6:	fd 4f       	sbci	r31, 0xFD	; 253
- 4e8:	80 83       	st	Z, r24
+ 546:	e0 91 03 02 	lds	r30, 0x0203
+ 54a:	f0 e0       	ldi	r31, 0x00	; 0
+ 54c:	80 91 c6 00 	lds	r24, 0x00C6
+ 550:	ec 5f       	subi	r30, 0xFC	; 252
+ 552:	fd 4f       	sbci	r31, 0xFD	; 253
+ 554:	80 83       	st	Z, r24
 	i++;
- 4ea:	80 91 03 02 	lds	r24, 0x0203
- 4ee:	8f 5f       	subi	r24, 0xFF	; 255
- 4f0:	80 93 03 02 	sts	0x0203, r24
+ 556:	80 91 03 02 	lds	r24, 0x0203
+ 55a:	8f 5f       	subi	r24, 0xFF	; 255
+ 55c:	80 93 03 02 	sts	0x0203, r24
 	if(i >= 2){
- 4f4:	80 91 03 02 	lds	r24, 0x0203
- 4f8:	82 30       	cpi	r24, 0x02	; 2
- 4fa:	18 f0       	brcs	.+6      	; 0x502 <__vector_25+0x3c>
+ 560:	80 91 03 02 	lds	r24, 0x0203
+ 564:	82 30       	cpi	r24, 0x02	; 2
+ 566:	18 f0       	brcs	.+6      	; 0x56e <__vector_25+0x3c>
 		uartPacketReady = true;
- 4fc:	81 e0       	ldi	r24, 0x01	; 1
- 4fe:	80 93 02 02 	sts	0x0202, r24
+ 568:	81 e0       	ldi	r24, 0x01	; 1
+ 56a:	80 93 02 02 	sts	0x0202, r24
 	}
 }
- 502:	ff 91       	pop	r31
- 504:	ef 91       	pop	r30
- 506:	8f 91       	pop	r24
- 508:	0f 90       	pop	r0
- 50a:	0b be       	out	0x3b, r0	; 59
- 50c:	0f 90       	pop	r0
- 50e:	0f be       	out	0x3f, r0	; 63
- 510:	0f 90       	pop	r0
- 512:	1f 90       	pop	r1
- 514:	18 95       	reti
+ 56e:	ff 91       	pop	r31
+ 570:	ef 91       	pop	r30
+ 572:	8f 91       	pop	r24
+ 574:	0f 90       	pop	r0
+ 576:	0b be       	out	0x3b, r0	; 59
+ 578:	0f 90       	pop	r0
+ 57a:	0f be       	out	0x3f, r0	; 63
+ 57c:	0f 90       	pop	r0
+ 57e:	1f 90       	pop	r1
+ 580:	18 95       	reti
 
-00000516 <_exit>:
- 516:	f8 94       	cli
+00000582 <_exit>:
+ 582:	f8 94       	cli
 
-00000518 <__stop_program>:
- 518:	ff cf       	rjmp	.-2      	; 0x518 <__stop_program>
+00000584 <__stop_program>:
+ 584:	ff cf       	rjmp	.-2      	; 0x584 <__stop_program>
