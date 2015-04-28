@@ -157,12 +157,16 @@ class RectSelector:
         cv2.setMouseCallback(win, self.onmouse)
         self.drag_start = None
         self.drag_rect = None
+        self.dragging = False
     def onmouse(self, event, x, y, flags, param):
         x, y = np.int16([x, y]) # BUG
         if event == cv2.EVENT_LBUTTONDOWN:
             self.drag_start = (x, y)
+            self.dragging = True
+        if event == cv2.EVENT_LBUTTONUP:
+            self.dragging = False
         if self.drag_start:
-            if flags & cv2.EVENT_FLAG_LBUTTON:
+            if self.dragging:
                 xo, yo = self.drag_start
                 x0, y0 = np.minimum([xo, yo], [x, y])
                 x1, y1 = np.maximum([xo, yo], [x, y])
