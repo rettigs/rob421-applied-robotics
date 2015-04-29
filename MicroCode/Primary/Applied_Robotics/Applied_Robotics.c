@@ -30,7 +30,7 @@ unsigned int clockRate;
 volatile bool rotationUpdated = 0;
 unsigned int RPM; 
 
-volatile uint8_t uartData[2] = {0,0};
+volatile uint8_t uartData[3] = {0,0,0};
 volatile char i = 0;
 volatile bool uartPacketReady = false; 
 
@@ -72,25 +72,35 @@ void uartInit(void){
 
 
 void timer0Init(){
-	//Timekeeper timer
-	//Enable overflow interrupt
-	TIMSK0 |= (1<<TOIE0);
-	//61 ticks is a second. 6.1 ticks is a .1 sec
-	//Prescaler set to:    F_CPU = 16000000
+	//Timekeeper timer	
+	
+	//Put in CTC mode
+	TCCR0A |= (1<<WGM01);
+	//Prescaler set to:1024   F_CPU = 16000000
+	//With top of 156 should CTC at 100Hz
 	TCCR0B |= (1<<CS02) | (1<<CS00);
+	//Enable interrupt
+	TIMSK0 |= 
+	//Set timer TOP to 156 (100Hz)
+	OCR0A = 156;
+	//start timer at bottom
 	TCNT0 = 0;
 	
 }
 
 void timer1Init(){
 	//Set up Timer1 as high resolution PWM for launcher/ servo
+	//OC1A is Digital 11
+	//OC1b is Digital 12
 	//Fast PWM Top set by OCR1A (Non-Inverting PWM)
 	TCCR1A |= (1<<COM1A1) | (1<<COM1B1) | (1<<WGM11) | (1<<WGM10);
-	//
-	TCCR1B |= (1<<WGM12) | (1<<WGM12);
-	
+	//Clock divider 256. (overflow every 1.048 sec)
+	TCCR1B |= (1<<WGM12) | (1<<WGM12) | (1<<CS10);
+	DDRB |= (1<<PB5) | (1<<PB6);
+	//set register 
+	OCR1A = 0;
+	OCR1B = 0;
 }
-
 
 void timer2Init(){
 	//Fast PWM timer
@@ -110,6 +120,23 @@ void timer2Init(){
 	//set OCB2(PH6) to output
 	DDRH |= (1<<PH6);
 		
+}
+
+void timer3Init(){
+	//This timer is set for 20ms periods for servo control. 
+	//Outputs on OC3A (DIGITAL 5)
+	//Set to Fast PWM
+	//Set to inverting PWM mode
+	TCCR3A |= (1<<WGM31) | (1<<COM3A1) | (1<<COM3A0);
+	//Set to PWM mode with clk divider of 256. 
+	TCCR3B |= (1<<WGM32) | (1<<WGM33) | (1<<CS32);
+	//Set TOP of counter
+	ICR3 = 1250; 
+	//Set toggle point
+	OCR3A = 1250;
+	//set to output
+	DDRE |= (1<<PE3);
+	 
 }
 
 void externalInterrupts(void){
@@ -152,16 +179,23 @@ void uartSendc(uint8_t u8Data){
 
 void uartSends(char s[]){
 	//Sends a string our on UART
-	int i = 0;
-	while(s[i] != 0){
-		uartSendc(s[i]);
-		i++;
+	int j = 0;
+	while(s[j] != 0){
+		uartSendc(s[j]);
+		j++;
 	}
 }
 
 void rampMotorSpeed(uint8_t newSpeed){
 	static int motorSpeed = 0;
 	//Ramp up the motor
+	/*
+	
+	
+	THIS FUNCTION IS BROKEN WITH 16BIT PWM
+	
+	
+	*/
 	while(lastRotation <= newSpeed){
 		//if rotation of motor is less than desired speed increase speed 
 		//write new speed to PWM control and wait until new measurement is in. 
@@ -229,7 +263,6 @@ void driveStepper(uint8_t steps, bool direction){
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
 }
  
-
 void PIDcompute()
 {
 	if(!inAuto) return;
@@ -337,10 +370,13 @@ void PIDenable(void){
 int main(void)
 {
 	uartInit();
-	timer0Init();
+//	timer0Init();
+	timer1Init();
 	timer2Init();
+	timer3Init();
 	externalInterrupts();
-	DDRB |= (1<<PB4) | (1<<PB5) | (1<<PB7);
+	//PB7 is Digital 13 (also LED)
+	DDRB |= (1<<PB4) | (1<<PB7);
 	//set PC0-3 to output for stepper control
 	//PC0-PC3 are used for stepper control
 	//PC0=37,   PC1=36,   PC2=35,   PC3=34
@@ -350,34 +386,35 @@ int main(void)
 	
     while(1)
 	    {
-				if(i >= 2){
+				if(uartPacketReady == true){
 					//Echo back received data
 					uartSendc(uartData[0]);
 					uartSendc(uartData[1]);
+					uartSendc(uartData[2]);
 					//Serial Command Packet: TTIIIIID
 					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
 					
 					//Motor 0 (launcher) forward control
-					//HEX CODE: 00 XX
+					//HEX CODE: 00 XX	XX
 					if(uartData[0] == 0b00000000){
-						PORTB &= ~(1<<PB5);
-//						rampMotorSpeed(uartData[1]);
-						OCR2A = uartData[1];
+						PORTB &= ~(1<<PB7);
+						OCR1AH = uartData[1];
+						OCR1AL = uartData[2];
 					}	
 					//Motor 0 (launcher) backward control
-					//HEX CODE: 01	XX		
+					//HEX CODE: 01	XX	XX	
 					if(uartData[0] == 0b00000001){
-						PORTB |= (1<<PB5);
-						rampMotorSpeed(uartData[1]);
-//						OCR2A = uartData[1];
+						PORTB |= (1<<PB7);
+						OCR1AH = uartData[1];
+						OCR1AL = uartData[2]; 
+
 					}
 					//Reload Command
 					//TT= 01
-					//HEX CODE: 40 00
+					//HEX CODE: 40 00 00
 					if(uartData[0] == 0b01000000){
 						//Move servo backward.
-//						OCR2B = uartData[1];
-						OCR2B = 60;
+						OCR3A = 1235;
 						//Set up external interrupt to stop servo when sensor is touched
 						
 						//Reverse direction of Servo and move backward.
@@ -397,7 +434,7 @@ int main(void)
 						//clockwise rotation
 						driveStepper(uartData[1], 0);
 					}
-					i = 0;
+					uartPacketReady = false;
 				}
 				_delay_ms(250);
 		}
@@ -446,22 +483,22 @@ ISR(INT4_vect){
 ISR(INT5_vect){
 	//Forward limit switch - stop the motor from moving.
 	//Switch should be attached to ground and Digital 3
-	OCR2B = 0; 
+	OCR3A = 1171; 
 //	uartSendc(0xff);
 }
 ISR(INT2_vect){
 	//Rear limit switch - reverses direction of motor.
 	//Should be attached to ground and Digital 19.
-	OCR2B = 0;
+	OCR3A = 1171;
 //	uartSendc(0x0f);
-	_delay_ms(100);
-	OCR2B = 239;
+	_delay_ms(20);
+	OCR3A = 1157;
 }
 
 ISR(USART0_RX_vect){
 	uartData[i] = UDR0;
 	i++;
-	if(i >= 2){
-		uartPacketReady = true;
+	if(i >= 3){
+		i=0;
 	}
 }
