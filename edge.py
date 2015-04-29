@@ -33,7 +33,6 @@ if __name__ == '__main__':
         flag, img = cap.read()
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         thrs1 = cv2.getTrackbarPos('thrs1', 'edge')
-        thrs2 = cv2.getTrackbarPos('thrs2', 'edge')
         edge = cv2.Canny(gray, thrs1, thrs2, apertureSize=5)
         vis = img.copy()
         vis /= 2

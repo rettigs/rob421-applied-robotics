@@ -20,7 +20,7 @@ def isEllipse(contour):
     Returns the ellipse form of the polygon if it's an ellipse, None otherwise.
     '''
     try: rect = cv2.fitEllipse(contour) # Rotated rectangle representing the ellipse it tries to fit
-    except: pass
+    except: return None
     (x, y), (w, h), angle = rect # x offset, y offset, width, height, angle
     w, h = h, w # Switch them since our ellipses are usually rotated 90 degrees
 
@@ -44,6 +44,9 @@ def isEllipse(contour):
     else:
         return None
 
+def nothing(*arg):
+    pass
+
 if __name__ == '__main__':
     import sys, getopt
     print help_message
@@ -58,6 +61,14 @@ if __name__ == '__main__':
 
     shapes = [] # List of tracked shapes
 
+    cv2.namedWindow('binary')
+    cv2.namedWindow('contours')
+    cv2.namedWindow('raw')
+    cv2.createTrackbar('minarea', 'raw', 100, 10000, nothing)
+    cv2.createTrackbar('maxarea', 'raw', 800, 10000, nothing)
+    cv2.createTrackbar('lowthresh', 'raw', 200, 255, nothing)
+    cv2.createTrackbar('highthresh', 'raw', 255, 255, nothing)
+
     while True:
         ret, img = cam.read()
 
@@ -65,7 +76,9 @@ if __name__ == '__main__':
 
         grayimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         grayimg = cv2.equalizeHist(grayimg)
-        ret, binimg = cv2.threshold(grayimg, 200, 255, cv2.THRESH_BINARY)
+        lowthresh = cv2.getTrackbarPos('lowthresh', 'raw')
+        highthresh = cv2.getTrackbarPos('highthresh', 'raw')
+        ret, binimg = cv2.threshold(grayimg, lowthresh, highthresh, cv2.THRESH_BINARY)
         #binimg = cv2.adaptiveThreshold(grayimg, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 13, 5)
         #binimg = cv2.Canny(grayimg, 250, 255)
         # do erosion and dilation?
@@ -74,7 +87,9 @@ if __name__ == '__main__':
         cup_contours = []
         for contour in contours:
             contour_area = cv2.contourArea(contour)
-            if contour_area > 100 and contour_area < 800:
+            minarea = cv2.getTrackbarPos('minarea', 'raw')
+            maxarea = cv2.getTrackbarPos('maxarea', 'raw')
+            if contour_area > minarea and contour_area < maxarea:
                 ellipse = isEllipse(contour)
                 if ellipse:
                     cup_contours.append(contour)
