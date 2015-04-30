@@ -24,11 +24,11 @@ volatile unsigned long startTime = 0;
 volatile unsigned long finishTime = 0;
 volatile unsigned long freq; 
 volatile unsigned char tick;
-unsigned int rotation = 0;
+volatile float rotation = 0;
 unsigned long lastRotation = 0; 
 unsigned int clockRate;
 volatile bool rotationUpdated = 0;
-unsigned int RPM; 
+volatile float RPM; 
 
 volatile uint8_t uartData[3] = {0,0,0};
 volatile char i = 0;
@@ -73,7 +73,11 @@ void uartInit(void){
 
 void timer0Init(){
 	//Timekeeper timer	
-	
+	TIMSK0 |= (1<<TOIE0);
+	//61 ticks is a second. 6.1 ticks is a .1 sec
+	//Prescaler set to:    F_CPU = 16000000
+	TCCR0B |= (1<<CS02) | (1<<CS00);
+	/*
 	//Put in CTC mode
 	TCCR0A |= (1<<WGM01);
 	//Prescaler set to:1024   F_CPU = 16000000
@@ -84,14 +88,15 @@ void timer0Init(){
 	//Set timer TOP to 156 (100Hz)
 	OCR0A = 156;
 	//start timer at bottom
+	*/
 	TCNT0 = 0;
 	
 }
 
 void timer1Init(){
-	//Set up Timer1 as high resolution PWM for launcher/ servo
-	//OC1A is Digital 11
-	//OC1b is Digital 12
+	//Set up Timer1 as 16bit PWM for launcher/ swatter
+	//OC1A is Digital 11 (PB5) Launcher
+	//OC1b is Digital 12 (PB6) Swatter
 	//Fast PWM Top set by OCR1A (Non-Inverting PWM)
 	TCCR1A |= (1<<COM1A1) | (1<<COM1B1) | (1<<WGM11) | (1<<WGM10);
 	//Clock divider 256. (overflow every 1.048 sec)
@@ -103,7 +108,7 @@ void timer1Init(){
 }
 
 void timer2Init(){
-	//Fast PWM timer
+	//Fast 8bit PWM timer
 	//OC2A is PIN 10 on Arduino.
 	//OC2B is PIN 9 on Arduino. 
 	//Timer will reset when it reaches TOP. 
@@ -136,7 +141,16 @@ void timer3Init(){
 	OCR3A = 1250;
 	//set to output
 	DDRE |= (1<<PE3);
-	 
+}
+
+void timer5Init() {
+	//Count on external pulses for motor feedback.
+	//Alt function T5(DIGITAL 47)
+	//In normal mode. Normal pin operation. 
+	//Set clk to be external rising edge
+	TCCR5B |= (1<<CS52) | (1<<CS51) | (1<<CS50);
+	//set counter to 0
+	TCNT5 = 0;
 }
 
 void externalInterrupts(void){
@@ -223,16 +237,13 @@ void rampMotorSpeed(uint8_t newSpeed){
 	}
 }
 
-void driveStepper(uint8_t steps, bool direction){
-	/*TODO: Make this a step forward function
-			Make a step backwards function
-			Look up how stepper drivers work
-	*/
+void driveStepper(uint16_t steps, bool direction){
 	//Reset PC0-PC3 to zero
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
 	PORTC |= (1<<PC0) | (1<<PC1);
 	//PC0-PC3 are used for stepper control
 	//PC0=37=E2,   PC1=36=E1,   PC2=35=M2,   PC3=34=M1 
+	//YELLOW and RED go to POSITIVE Terminal
 	//direction = 1 is counter clockwise
 	if(direction == 1){
 		for(int i=0; i<steps; i++){
@@ -370,10 +381,11 @@ void PIDenable(void){
 int main(void)
 {
 	uartInit();
-//	timer0Init();
+	timer0Init();
 	timer1Init();
-	timer2Init();
+//	timer2Init();
 	timer3Init();
+	timer5Init(); 
 	externalInterrupts();
 	//PB7 is Digital 13 (also LED)
 	DDRB |= (1<<PB4) | (1<<PB7);
@@ -395,18 +407,21 @@ int main(void)
 					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
 					
 					//Motor 0 (launcher) forward control
-					//HEX CODE: 00 XX	XX
+					//HEX CODE: 00 XX XX
 					if(uartData[0] == 0b00000000){
+						//NOTE TOP IS 0X3FF!!!!
 						PORTB &= ~(1<<PB7);
-						OCR1AH = uartData[1];
-						OCR1AL = uartData[2];
+						OCR1A = (uartData[1]<<8) | uartData[2];
+	//					OCR1AL = uartData[2];
+	//					uartSendc(uartData[1]);
+	//					uartSendc(uartData[2]);
 					}	
 					//Motor 0 (launcher) backward control
 					//HEX CODE: 01	XX	XX	
 					if(uartData[0] == 0b00000001){
 						PORTB |= (1<<PB7);
-						OCR1AH = uartData[1];
-						OCR1AL = uartData[2]; 
+						OCR1A = (uartData[1]<<8) | uartData[2];
+//						OCR1AL = uartData[2]; 
 
 					}
 					//Reload Command
@@ -425,14 +440,14 @@ int main(void)
 					if(uartData[0] == 0b00000010){
 						//ToDo: need stepper motor/weight estimate for chassis.
 						//counterclockwise rotation
-						driveStepper(uartData[1], 1);
+						driveStepper(((uartData[1]<<8) | uartData[2]), 1);
 					}
 					//Carriage (Motor 1) backward control
 					//HEX CODE: 03 XX
 					if(uartData[0] == 0b00000011){
 						//ToDo: need stepper motor/weight estimate for chassis. 	
 						//clockwise rotation
-						driveStepper(uartData[1], 0);
+						driveStepper(((uartData[1]<<8) | uartData[2]), 0);
 					}
 					uartPacketReady = false;
 				}
@@ -444,34 +459,21 @@ int main(void)
 ISR(TIMER0_OVF_vect){
 	//60 ticks is a second. 6 is a .1 sec
 	//only send speed once a second.
-	if(tick == 60){
-		uartSendc(rotation);
-	}
-	//12 ticks is 200ms. This gives 300 RPM minimum or 5 RPS
-	if(tick == 12){
-		tick = 0;
-		//rotations/200ms * 1000ms/1s * 60s/min
-		RPM = rotation * 300; 
-		lastRotation = rotation;
-//		uartSendc(rotation);
-//		if(state == LAUNCHBALL){
-//			PIDinput = (rotation);
-//			PIDcompute();
-//		}
-		//its been 1s check the counter
-//		uartSendc((uint8_t)PIDoutput);
-		rotation = 0;
-		rotationUpdated = 1;
-	}
-	//computer new  PID output every 50ms
-	//if in LAUNCHBALL state.
 	/*
-	if((tick == 3) && (state = LAUNCHBALL)){
-		//(Rotation/50ms) * (1000ms/sec) * (60sec/min) = RPM - not correct anymore
-		PIDinput = (rotation);
-		PIDcompute();
-	}
+		Ticks every 4 seconds.....
 	*/
+	if(tick == 60){
+		//Read number of pulses counted
+		rotation = TCNT5; 
+		//reset counter. 
+		TCNT5 = 0; 
+		//(pulse/sec)*(rotation/2000)*(60sec/min)
+		RPM = (rotation*(3/100));		
+//		uartSendc(rotation);
+		//Send back data
+//		uartSendc((uint16_t)RPM>>8);
+//		uartSendc((uint8_t)RPM);
+	}
 	tick++;
 }
 
@@ -500,5 +502,6 @@ ISR(USART0_RX_vect){
 	i++;
 	if(i >= 3){
 		i=0;
+		uartPacketReady = true;
 	}
 }
