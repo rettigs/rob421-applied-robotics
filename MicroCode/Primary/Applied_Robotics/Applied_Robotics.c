@@ -436,14 +436,14 @@ int main(void)
 
 					}
 					//Carriage (Motor 1) forward control
-					//HEX CODE: 02 XX
+					//HEX CODE: 02 XX XX
 					if(uartData[0] == 0b00000010){
 						//ToDo: need stepper motor/weight estimate for chassis.
 						//counterclockwise rotation
 						driveStepper(((uartData[1]<<8) | uartData[2]), 1);
 					}
 					//Carriage (Motor 1) backward control
-					//HEX CODE: 03 XX
+					//HEX CODE: 03 XX XX
 					if(uartData[0] == 0b00000011){
 						//ToDo: need stepper motor/weight estimate for chassis. 	
 						//clockwise rotation
