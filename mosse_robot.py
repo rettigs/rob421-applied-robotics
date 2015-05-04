@@ -1,30 +1,29 @@
 #!/usr/bin/env python
 
-'''
-MOSSE tracking sample
+import getopt
+from multiprocessing import Process, Queue
+import serial
+import sys
+import time
 
-This sample implements correlation-based tracking approach, described in [1].
-
-Usage:
-  mosse.py [--pause] [<video source>]
-
-  --pause  -  Start with playback paused at the first video frame.
-              Useful for tracking target selection.
-
-  Draw rectangles around objects with a mouse to track them.
-
-Keys:
-  SPACE    - pause video
-  c        - clear targets
-
-[1] David S. Bolme et al. "Visual Object Tracking using Adaptive Correlation Filters"
-    http://www.cs.colostate.edu/~bolme/publications/Bolme2010Tracking.pdf
-'''
-
-import numpy as np
-import cv2
 from common import draw_str, RectSelector
+import cv2
+import numpy as np
 import video
+
+# Constants
+OFFSET_TYPE = 6
+OFFSET_ID = 1
+OFFSET_DIRECTION = 0
+OFFSET_MAGNITUDE1 = 8
+OFFSET_MAGNITUDE2 = 0
+PACKET_DEVICE = 0b00
+PACKET_RELOAD = 0b01
+PACKET_SWAT = 0b10
+
+# Globals
+debug = 0
+verbose = 0
 
 def rnd_warp(a):
     h, w = a.shape[:2]
@@ -137,13 +136,15 @@ class MOSSE:
         self.H[...,1] *= -1
 
 class App:
-    def __init__(self, video_src, paused = False):
+    def __init__(self, video_src, robotq, appq):
         self.cap = video.create_capture(video_src)
         _, self.frame = self.cap.read()
         cv2.imshow('frame', self.frame)
         self.rect_sel = RectSelector('frame', self.onrect)
         self.trackers = []
-        self.paused = paused
+        self.robotq = robotq
+        self.appq = appq
+        self.paused = False
 
     def onrect(self, rect):
         frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
@@ -175,14 +176,85 @@ class App:
                 self.paused = not self.paused
             if ch == ord('c'):
                 self.trackers = []
+        cv2.destroyAllWindows()
 
+class Robot(object):
+
+    def __init__(self, serialDevice, robotq, appq):
+        self.speeds = {}
+        self.port = serial.Serial(serialDevice, baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3.0)
+        self.robotq = robotq
+        self.appq = appq
+
+    def main(self):
+        while True:
+            self.readPackets()
+            print self.getSpeed(0)
+            self.setSpeed(0, 127)
+            time.sleep(1)
+            self.readPackets()
+            print self.getSpeed(0)
+            self.setSpeed(0, 239)
+            time.sleep(1)
+
+    def readPackets(self):
+        while self.port.inWaiting() >= 3:
+            packet = self.port.read(3)
+            #print "received: '{}'".format([ord(p) for p in packet])
+            byte1, byte2, byte3 = map(ord, packet)
+            deviceid = byte1 << (8 - OFFSET_TYPE) >> (8 - OFFSET_TYPE + OFFSET_ID) << OFFSET_ID
+            magnitude = (byte2 << OFFSET_MAGNITUDE1) | (byte3 << OFFSET_MAGNITUDE2)
+            self.speeds[deviceid] = magnitude
+            #print "device {} ({}) updated with magnitude {} ({})".format(deviceid, dbyte, magnitude, mbyte)
+
+    def getSpeed(self, deviceid):
+        return self.speeds.get(deviceid, 0)
+
+    def setSpeed(self, deviceid, speed=0, direction=0):
+        byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (deviceid << OFFSET_ID) | (direction << OFFSET_DIRECTION)
+        byte2 = (speed >> OFFSET_MAGNITUDE1) & 0b11111111
+        byte3 = (speed >> OFFSET_MAGNITUDE2) & 0b11111111
+        packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
+
+        print "sending: '{}'".format([ord(p) for p in packet])
+        self.port.write(packet)
 
 if __name__ == '__main__':
-    print __doc__
-    import sys, getopt
-    opts, args = getopt.getopt(sys.argv[1:], '', ['pause'])
-    opts = dict(opts)
-    try: video_src = args[0]
-    except: video_src = '0'
 
-    App(video_src, paused = '--pause' in opts).run()
+    # Defaults
+    serialDevice = '/dev/ttyACM0'
+    captureDevice = '/dev/video0'
+
+    # Parse arguments
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "s:c:dvh")
+    except getopt.GetoptError as err:
+        # print help information and exit:
+        print str(err) # will print something like "option -a not recognized"
+        sys.exit(2)
+    for o, a in opts:
+        if o == "-d":
+            global debug
+            debug += 1
+        elif o == "-v":
+            global verbose
+            verbose += 1
+        elif o == "-s":
+            serialDevice = a
+        elif o == "-c":
+            captureDevice = a
+        else:
+            usage()
+    
+    robotq, appq = Queue(), Queue()
+
+    robot = Robot(serialDevice, robotq, appq)
+    robotProcess = Process(target=robot.main)
+    #robotProcess.start()
+
+    #opts, args = getopt.getopt(sys.argv[1:], '', ['pause'])
+    #opts = dict(opts)
+
+    #App(videoDevice, paused = '--pause' in opts).run()
+    App(captureDevice, robotq, appq).run()
+
