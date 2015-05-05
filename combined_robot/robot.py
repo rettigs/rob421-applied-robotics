@@ -9,8 +9,10 @@ OFFSET_DIRECTION = 0
 OFFSET_MAGNITUDE1 = 8
 OFFSET_MAGNITUDE2 = 0
 PACKET_DEVICE = 0b00
-PACKET_RELOAD = 0b01
+PACKET_SHOOT = 0b01
 PACKET_SWAT = 0b10
+LAUNCH = 0
+CARRIAGE = 1
 
 class Robot(object):
 
@@ -28,6 +30,7 @@ class Robot(object):
             except: pass
             else:
                 if work == 'exit': exit()
+                elif work == 'shoot': self.shoot()
                 else:
                     self.setSpeed(*work)
 
@@ -53,5 +56,14 @@ class Robot(object):
         byte3 = (speed >> OFFSET_MAGNITUDE2) & 0b11111111
         packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
 
-        print "sending: '{}'".format([ord(p) for p in packet])
+        #print "sending: '{}'".format([ord(p) for p in packet])
+        self.port.write(packet)
+
+    def shoot(self):
+        byte1 = (PACKET_SHOOT << OFFSET_TYPE)
+        byte2 = 0
+        byte3 = 0
+        packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
+
+        print "Shooting"
         self.port.write(packet)

@@ -94,6 +94,7 @@ class MOSSE:
             cv2.line(vis, (x1, y1), (x2, y2), (0, 0, 255))
             cv2.line(vis, (x2, y1), (x1, y2), (0, 0, 255))
         draw_str(vis, (x1, y2+16), 'PSR: %.2f' % self.psr)
+        return x, y # Return the center coords of the object
 
     def preprocess(self, img):
         img = np.log(np.float32(img)+1.0)

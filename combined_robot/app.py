@@ -7,6 +7,10 @@ import video
 from common import draw_str, RectSelector
 from mosse import MOSSE
 
+# Constants
+LAUNCH = 0
+CARRIAGE = 1
+
 class App:
     def __init__(self, video_src, robotq, appq):
         self.cap = video.create_capture(video_src)
@@ -49,10 +53,21 @@ class App:
                 tracker.update(frame_gray)
 
             vis = self.frame.copy()
-            for tracker in self.trackers:
-                tracker.draw_state(vis)
-            #if len(self.trackers) > 0:
-            #    cv2.imshow('tracker state', self.trackers[-1].state_vis)
+            if len(self.trackers) > 0:
+                x, _ = self.trackers[0].draw_state(vis)
+
+                # Make the robot move toward the object
+                width = 640
+                x = int(x)
+                if x < width // 2:
+                    self.robotq.put(1, abs(width - x), 0)
+                elif x > width // 2:
+                    self.robotq.put(1, abs(width - x), 1)
+                else:
+                    print "Cup targeting complete; shooting"
+                    self.robotq.put('shoot')
+                    self.trackers = []
+
             self.rect_sel.draw(vis)
 
             cv2.imshow('frame', vis)
