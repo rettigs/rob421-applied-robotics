@@ -44,6 +44,9 @@ def divSpec(A, B):
     C = np.dstack([np.real(C), np.imag(C)]).copy()
     return C
 
+def nothing(*arg):
+    pass
+
 eps = 1e-5
 
 class MOSSE:
@@ -139,12 +142,25 @@ class App:
     def __init__(self, video_src, robotq, appq):
         self.cap = video.create_capture(video_src)
         _, self.frame = self.cap.read()
+        cv2.namedWindow('frame')
+        cv2.createTrackbar('row', 'frame', 0, 2, self.onrow)
+        cv2.createTrackbar('speed', 'frame', 1000, 10000, self.onspeed)
         cv2.imshow('frame', self.frame)
         self.rect_sel = RectSelector('frame', self.onrect)
         self.trackers = []
         self.robotq = robotq
         self.appq = appq
-        self.paused = False
+
+    def onrow(self, row):
+        '''When the row is changed, update the speed.'''
+        if   row == 0: speed = 1000
+        elif row == 1: speed = 1005
+        elif row == 2: speed = 1010
+        cv2.setTrackbarPos('speed', 'frame', speed)
+
+    def onspeed(self, speed):
+        '''When the speed is changed, send it to the robot.'''
+        self.robotq.put((0, speed))
 
     def onrect(self, rect):
         frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
@@ -153,19 +169,18 @@ class App:
 
     def run(self):
         while True:
-            if not self.paused:
-                ret, self.frame = self.cap.read()
-                if not ret:
-                    break
-                frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-                for tracker in self.trackers:
-                    tracker.update(frame_gray)
+            ret, self.frame = self.cap.read()
+            if not ret:
+                break
+            frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+            for tracker in self.trackers:
+                tracker.update(frame_gray)
 
             vis = self.frame.copy()
             for tracker in self.trackers:
                 tracker.draw_state(vis)
-            if len(self.trackers) > 0:
-                cv2.imshow('tracker state', self.trackers[-1].state_vis)
+            #if len(self.trackers) > 0:
+            #    cv2.imshow('tracker state', self.trackers[-1].state_vis)
             self.rect_sel.draw(vis)
 
             cv2.imshow('frame', vis)
@@ -177,6 +192,7 @@ class App:
             if ch == ord('c'):
                 self.trackers = []
         cv2.destroyAllWindows()
+        self.robotq.put('exit')
 
 class Robot(object):
 
@@ -188,14 +204,17 @@ class Robot(object):
 
     def main(self):
         while True:
+
+            # Check for work from the GUI
+            try: work = self.robotq.get(False)
+            except: pass
+            else:
+                if work == 'exit': exit()
+                else:
+                    self.setSpeed(*work)
+
+            # Check for packets from the microcontroller
             self.readPackets()
-            print self.getSpeed(0)
-            self.setSpeed(0, 127)
-            time.sleep(1)
-            self.readPackets()
-            print self.getSpeed(0)
-            self.setSpeed(0, 239)
-            time.sleep(1)
 
     def readPackets(self):
         while self.port.inWaiting() >= 3:
@@ -223,7 +242,7 @@ if __name__ == '__main__':
 
     # Defaults
     serialDevice = '/dev/ttyACM0'
-    captureDevice = '/dev/video0'
+    captureDevice = '0'
 
     # Parse arguments
     try:
@@ -250,7 +269,7 @@ if __name__ == '__main__':
 
     robot = Robot(serialDevice, robotq, appq)
     robotProcess = Process(target=robot.main)
-    #robotProcess.start()
+    robotProcess.start()
 
     #opts, args = getopt.getopt(sys.argv[1:], '', ['pause'])
     #opts = dict(opts)
