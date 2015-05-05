@@ -1,30 +1,9 @@
 #!/usr/bin/env python
 
-'''
-MOSSE tracking sample
-
-This sample implements correlation-based tracking approach, described in [1].
-
-Usage:
-  mosse.py [--pause] [<video source>]
-
-  --pause  -  Start with playback paused at the first video frame.
-              Useful for tracking target selection.
-
-  Draw rectangles around objects with a mouse to track them.
-
-Keys:
-  SPACE    - pause video
-  c        - clear targets
-
-[1] David S. Bolme et al. "Visual Object Tracking using Adaptive Correlation Filters"
-    http://www.cs.colostate.edu/~bolme/publications/Bolme2010Tracking.pdf
-'''
-
-import numpy as np
 import cv2
-from common import draw_str, RectSelector
-import video
+import numpy as np
+
+from common import draw_str
 
 def rnd_warp(a):
     h, w = a.shape[:2]
@@ -135,54 +114,3 @@ class MOSSE:
     def update_kernel(self):
         self.H = divSpec(self.H1, self.H2)
         self.H[...,1] *= -1
-
-class App:
-    def __init__(self, video_src, paused = False):
-        self.cap = video.create_capture(video_src)
-        _, self.frame = self.cap.read()
-        cv2.imshow('frame', self.frame)
-        self.rect_sel = RectSelector('frame', self.onrect)
-        self.trackers = []
-        self.paused = paused
-
-    def onrect(self, rect):
-        frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        tracker = MOSSE(frame_gray, rect)
-        self.trackers.append(tracker)
-
-    def run(self):
-        while True:
-            if not self.paused:
-                ret, self.frame = self.cap.read()
-                if not ret:
-                    break
-                frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-                for tracker in self.trackers:
-                    tracker.update(frame_gray)
-
-            vis = self.frame.copy()
-            for tracker in self.trackers:
-                tracker.draw_state(vis)
-            if len(self.trackers) > 0:
-                cv2.imshow('tracker state', self.trackers[-1].state_vis)
-            self.rect_sel.draw(vis)
-
-            cv2.imshow('frame', vis)
-            ch = cv2.waitKey(10)
-            if ch == 27:
-                break
-            if ch == ord(' '):
-                self.paused = not self.paused
-            if ch == ord('c'):
-                self.trackers = []
-
-
-if __name__ == '__main__':
-    print __doc__
-    import sys, getopt
-    opts, args = getopt.getopt(sys.argv[1:], '', ['pause'])
-    opts = dict(opts)
-    try: video_src = args[0]
-    except: video_src = '0'
-
-    App(video_src, paused = '--pause' in opts).run()
