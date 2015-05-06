@@ -240,13 +240,30 @@ void rampMotorSpeed(uint8_t newSpeed){
 void driveStepper(uint16_t steps, bool direction){
 	//Reset PC0-PC3 to zero
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
-	PORTC |= (1<<PC0) | (1<<PC1);
+//	PORTC |= (1<<PC0) | (1<<PC1);
 	//PC0-PC3 are used for stepper control
+	//DFRobot MC
 	//PC0=37=E2,   PC1=36=E1,   PC2=35=M2,   PC3=34=M1 
+	//Red Motor Contorller
+	//PC0=37=In1		PC2=35=In2
+	//PC1=36=In3		PC3=34=In4
 	//YELLOW and RED go to POSITIVE Terminal
 	//direction = 1 is counter clockwise
 	if(direction == 1){
 		for(int i=0; i<steps; i++){
+			PORTC &= ~(1<<PC3); 
+			PORTC |= (1<<PC0);
+			_delay_ms(2);
+			PORTC &= ~(1<<PC0);
+			PORTC |= (1<<PC1);
+			_delay_ms(2);
+			PORTC &= ~(1<<PC1);
+			PORTC |= (1<<PC2);
+			_delay_ms(2);
+			PORTC &= ~(1<<PC2);
+			PORTC |= (1<<PC3);
+			_delay_ms(2);
+			/*
 			PORTC |= (1<<PC2) | (1<<PC3);
 			_delay_ms(2);
 			PORTC &= ~(1<<PC2);
@@ -255,11 +272,25 @@ void driveStepper(uint16_t steps, bool direction){
 			_delay_ms(2);
 			PORTC |= (1<<PC2);
 			_delay_ms(2);
+			*/
 		}
 	}
 	//Check this order - it grinds the gears/ is jumpy
 	if(direction == 0){
 		for(int i=0; i<steps; i++){
+			PORTC &= ~(1<<PC1);
+			PORTC |= (1<<PC0);
+			_delay_ms(2);
+			PORTC &= ~(1<<PC0);
+			PORTC |= (1<<PC3);
+			_delay_ms(2);
+			PORTC &= ~(1<<PC3);
+			PORTC |= (1<<PC2);
+			_delay_ms(2);
+			PORTC &= ~(1<<PC2);
+			PORTC |= (1<<PC1);
+			_delay_ms(2);
+			/*
 			PORTC |= (1<<PC2);
 			PORTC &= ~(1<<PC3);
 			_delay_ms(2);
@@ -269,6 +300,7 @@ void driveStepper(uint16_t steps, bool direction){
 			_delay_ms(2);
 			PORTC |= (1<<PC2);
 			_delay_ms(2);
+			*/
 		}
 	}
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
