@@ -60,9 +60,11 @@ class App:
                 width = 640
                 x = int(x)
                 if x < width // 2:
-                    self.robotq.put(1, abs(width - x), 0)
+                    print "going right"
+                    self.robotq.put((1, abs(width // 2 - x) * 20, 0))
                 elif x > width // 2:
-                    self.robotq.put(1, abs(width - x), 1)
+                    print "going left"
+                    self.robotq.put((1, abs(width // 2 - x) * 20, 1))
                 else:
                     print "Cup targeting complete; shooting"
                     self.robotq.put('shoot')
