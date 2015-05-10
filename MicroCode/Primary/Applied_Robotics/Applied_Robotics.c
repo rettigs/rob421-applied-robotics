@@ -76,7 +76,9 @@ void timer0Init(){
 	TIMSK0 |= (1<<TOIE0);
 	//61 ticks is a second. 6.1 ticks is a .1 sec
 	//Prescaler set to:    F_CPU = 16000000
-	TCCR0B |= (1<<CS02) | (1<<CS00);
+	//TCCR0B |= (1<<CS02) | (1<<CS00);
+	//Clk divider by 256
+	TCCR0B |= (1<<CS02);
 	/*
 	//Put in CTC mode
 	TCCR0A |= (1<<WGM01);
@@ -483,7 +485,7 @@ int main(void)
 					}
 					uartPacketReady = false;
 				}
-				_delay_ms(250);
+				_delay_ms(1);
 		}
 }
 
@@ -494,14 +496,14 @@ ISR(TIMER0_OVF_vect){
 	/*
 		Ticks every 4 seconds.....
 	*/
-	if(tick == 60){
+	if(tick == 16){
 		//Read number of pulses counted
 		rotation = TCNT5; 
 		//reset counter. 
 		TCNT5 = 0; 
 		//(pulse/sec)*(rotation/2000)*(60sec/min)
 		RPM = (rotation*(3/100));		
-//		uartSendc(rotation);
+		uartSendc(rotation);
 		//Send back data
 //		uartSendc((uint16_t)RPM>>8);
 //		uartSendc((uint8_t)RPM);
@@ -512,7 +514,7 @@ ISR(TIMER0_OVF_vect){
 ISR(INT4_vect){
 	//Optical encoder feedback from Launching motor
 	//Input pin is Digital 2
-	rotation++;
+//	rotation++;
 }
 ISR(INT5_vect){
 	//Forward limit switch - stop the motor from moving.
