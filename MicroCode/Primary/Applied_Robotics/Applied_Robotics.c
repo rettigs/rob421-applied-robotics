@@ -256,56 +256,38 @@ void driveStepper(uint16_t steps, bool direction){
 	//direction = 1 is counter clockwise
 	if(direction == 1){
 		for(int i=0; i<steps; i++){
-			PORTC &= ~(1<<PC3); 
-			PORTC |= (1<<PC0);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC0);
-			PORTC |= (1<<PC1);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC1);
-			PORTC |= (1<<PC2);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC2);
-			PORTC |= (1<<PC3);
-			_delay_ms(2);
-			/*
-			PORTC |= (1<<PC2) | (1<<PC3);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC2);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC3);
-			_delay_ms(2);
-			PORTC |= (1<<PC2);
-			_delay_ms(2);
-			*/
+			if(uartPacketReady == false){
+				PORTC &= ~(1<<PC3); 
+				PORTC |= (1<<PC0);
+				_delay_ms(2);
+				PORTC &= ~(1<<PC0);
+				PORTC |= (1<<PC1);
+				_delay_ms(2);
+				PORTC &= ~(1<<PC1);
+				PORTC |= (1<<PC2);
+				_delay_ms(2);
+				PORTC &= ~(1<<PC2);
+				PORTC |= (1<<PC3);
+				_delay_ms(2);
+			}
 		}
 	}
-	//Check this order - it grinds the gears/ is jumpy
 	if(direction == 0){
 		for(int i=0; i<steps; i++){
-			PORTC &= ~(1<<PC1);
-			PORTC |= (1<<PC0);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC0);
-			PORTC |= (1<<PC3);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC3);
-			PORTC |= (1<<PC2);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC2);
-			PORTC |= (1<<PC1);
-			_delay_ms(2);
-			/*
-			PORTC |= (1<<PC2);
-			PORTC &= ~(1<<PC3);
-			_delay_ms(2);
-			PORTC &= ~(1<<PC2);
-			_delay_ms(2);
-			PORTC |= (1<<PC3);
-			_delay_ms(2);
-			PORTC |= (1<<PC2);
-			_delay_ms(2);
-			*/
+			if(uartPacketReady == false){
+				PORTC &= ~(1<<PC1);
+				PORTC |= (1<<PC0);
+				_delay_ms(2);
+				PORTC &= ~(1<<PC0);
+				PORTC |= (1<<PC3);
+				_delay_ms(2);
+				PORTC &= ~(1<<PC3);
+				PORTC |= (1<<PC2);
+				_delay_ms(2);
+				PORTC &= ~(1<<PC2);
+				PORTC |= (1<<PC1);
+				_delay_ms(2);
+			}
 		}
 	}
 	PORTC &= ~((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
@@ -425,7 +407,7 @@ int main(void)
 	timer5Init(); 
 	externalInterrupts();
 	
-	PIDsetTunings(4,0,0);
+	PIDsetTunings(4,2,0);
 	PIDsetSampleTime(4);
 	PIDsetOutputLimits(0,0x03ff); 
 	PIDsetMode(AUTOMATIC);
@@ -465,9 +447,11 @@ int main(void)
 					//Motor 0 (launcher) forward control
 					//HEX CODE: 00 XX XX
 					if(uartData[0] == 0b00000000){
-						//NOTE TOP IS 0X03FF!!!!
+						//NOTE TOP IS 0X03FF!
+						//Max distance is 0x56
+						//Min distance is 0x51
 						PORTB &= ~(1<<PB7);
-						OCR1A = (uartData[1]<<8) | uartData[2];
+						Setpoint = (uartData[1]<<8) | uartData[2];
 	//					OCR1AL = uartData[2];
 	//					uartSendc(uartData[1]);
 	//					uartSendc(uartData[2]);
@@ -476,7 +460,7 @@ int main(void)
 					//HEX CODE: 01	XX	XX	
 					if(uartData[0] == 0b00000001){
 						PORTB |= (1<<PB7);
-						OCR1A = (uartData[1]<<8) | uartData[2];
+						Setpoint = (uartData[1]<<8) | uartData[2];
 //						OCR1AL = uartData[2]; 
 
 					}
