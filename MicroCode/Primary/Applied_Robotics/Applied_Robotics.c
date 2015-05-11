@@ -66,6 +66,9 @@ void uartInit(void){
 //	clockRate = (F_CPU/(16*BAUD))-1;
 //	UBRR0H = (unsigned char)(clockRate>>8);
 //	UBRR0L = (unsigned char)clockRate;
+	//set to 115200 Baud rate
+//	UBRR0H = 0x00;
+//	UBRR0L = 0x08;
 	UBRR0H = 0x00;
 	UBRR0L = 0x67;
 }
@@ -75,8 +78,8 @@ void timer0Init(){
 	//Timekeeper timer	
 	TIMSK0 |= (1<<TOIE0);
 	//61 ticks is a second. 6.1 ticks is a .1 sec
-	//Prescaler set to:    F_CPU = 16000000
-	//TCCR0B |= (1<<CS02) | (1<<CS00);
+	//Prescaler set to:1024    F_CPU = 16000000
+//	TCCR0B |= (1<<CS02) | (1<<CS00);
 	//Clk divider by 256
 	TCCR0B |= (1<<CS02);
 	/*
@@ -223,7 +226,7 @@ void rampMotorSpeed(uint8_t newSpeed){
 			if(motorSpeed < 255){
 				motorSpeed++;
 			}
-			OCR2A = motorSpeed;	
+			OCR1A = motorSpeed;	
 			rotationUpdated = 0;
 		}
 		
@@ -233,7 +236,7 @@ void rampMotorSpeed(uint8_t newSpeed){
 			if(motorSpeed > 0){
 				motorSpeed--;
 			}
-			OCR2A = motorSpeed;
+			OCR1A = motorSpeed;
 			rotationUpdated = 0; 
 		}
 	}
@@ -324,7 +327,7 @@ void PIDcompute()
 		else if(PIDoutput < outMin) PIDoutput = outMin;
 		
 		//Set PIDoutput to controlling PWM register
-		OCR2A = PIDoutput; 
+		OCR1A = PIDoutput; 
 		
 		/*Remember some variables for next time*/
 		lastInput = PIDinput;
@@ -421,6 +424,15 @@ int main(void)
 	timer3Init();
 	timer5Init(); 
 	externalInterrupts();
+	
+	PIDsetTunings(4,0,0);
+	PIDsetSampleTime(4);
+	PIDsetOutputLimits(0,0x03ff); 
+	PIDsetMode(AUTOMATIC);
+	PIDsetControllerDirection(DIRECT);
+	PIDinitialize();
+	Setpoint = 0;
+	
 	//PB7 is Digital 13 (also LED)
 	DDRB |= (1<<PB4) | (1<<PB7);
 	//set PC0-3 to output for stepper control
@@ -432,18 +444,28 @@ int main(void)
 	
     while(1)
 	    {
+				
 				if(uartPacketReady == true){
+					//For 19V source 000f50 is about 12V at the motor. 
 					//Echo back received data
-					uartSendc(uartData[0]);
-					uartSendc(uartData[1]);
-					uartSendc(uartData[2]);
+	//				uartSendc(uartData[0]);
+	//				uartSendc(uartData[1]);
+	//				uartSendc(uartData[2]);
 					//Serial Command Packet: TTIIIIID
 					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
+					
+					//PID Dev functions
+					if(uartData[0] == 0x88){
+						Setpoint = uartData[1]; 
+						PIDsetTunings(4,uartData[2],0);
+					}
+					
+					
 					
 					//Motor 0 (launcher) forward control
 					//HEX CODE: 00 XX XX
 					if(uartData[0] == 0b00000000){
-						//NOTE TOP IS 0X3FF!!!!
+						//NOTE TOP IS 0X03FF!!!!
 						PORTB &= ~(1<<PB7);
 						OCR1A = (uartData[1]<<8) | uartData[2];
 	//					OCR1AL = uartData[2];
@@ -496,19 +518,22 @@ ISR(TIMER0_OVF_vect){
 	/*
 		Ticks every 4 seconds.....
 	*/
-	if(tick == 16){
+//	if(tick == 3){
 		//Read number of pulses counted
 		rotation = TCNT5; 
 		//reset counter. 
 		TCNT5 = 0; 
 		//(pulse/sec)*(rotation/2000)*(60sec/min)
-		RPM = (rotation*(3/100));		
+//		RPM = (rotation*(3/100));
+		PIDinput = rotation;		
 		uartSendc(rotation);
+		PIDcompute();
 		//Send back data
 //		uartSendc((uint16_t)RPM>>8);
 //		uartSendc((uint8_t)RPM);
-	}
-	tick++;
+//		tick = 0;
+//	}
+//	tick++;
 }
 
 ISR(INT4_vect){
