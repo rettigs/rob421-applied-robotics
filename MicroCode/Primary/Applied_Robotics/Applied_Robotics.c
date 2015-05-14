@@ -259,16 +259,16 @@ void driveStepper(uint16_t steps, bool direction){
 			if(uartPacketReady == false){
 				PORTC &= ~(1<<PC3); 
 				PORTC |= (1<<PC0);
-				_delay_ms(2);
+				_delay_ms(1);
 				PORTC &= ~(1<<PC0);
 				PORTC |= (1<<PC1);
-				_delay_ms(2);
+				_delay_ms(1);
 				PORTC &= ~(1<<PC1);
 				PORTC |= (1<<PC2);
-				_delay_ms(2);
+				_delay_ms(1);
 				PORTC &= ~(1<<PC2);
 				PORTC |= (1<<PC3);
-				_delay_ms(2);
+				_delay_ms(1);
 			}
 		}
 	}
@@ -277,16 +277,16 @@ void driveStepper(uint16_t steps, bool direction){
 			if(uartPacketReady == false){
 				PORTC &= ~(1<<PC1);
 				PORTC |= (1<<PC0);
-				_delay_ms(2);
+				_delay_ms(1);
 				PORTC &= ~(1<<PC0);
 				PORTC |= (1<<PC3);
-				_delay_ms(2);
+				_delay_ms(1);
 				PORTC &= ~(1<<PC3);
 				PORTC |= (1<<PC2);
-				_delay_ms(2);
+				_delay_ms(1);
 				PORTC &= ~(1<<PC2);
 				PORTC |= (1<<PC1);
-				_delay_ms(2);
+				_delay_ms(1);
 			}
 		}
 	}
@@ -430,9 +430,9 @@ int main(void)
 				if(uartPacketReady == true){
 					//For 19V source 000f50 is about 12V at the motor. 
 					//Echo back received data
-	//				uartSendc(uartData[0]);
-	//				uartSendc(uartData[1]);
-	//				uartSendc(uartData[2]);
+					uartSendc(uartData[0]);
+					uartSendc(uartData[1]);
+					uartSendc(uartData[2]);
 					//Serial Command Packet: TTIIIIID
 					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
 					
@@ -480,6 +480,7 @@ int main(void)
 					if(uartData[0] == 0b00000010){
 						//ToDo: need stepper motor/weight estimate for chassis.
 						//counterclockwise rotation
+						uartPacketReady = false;
 						driveStepper(((uartData[1]<<8) | uartData[2]), 1);
 					}
 					//Carriage (Motor 1) backward control
@@ -487,6 +488,7 @@ int main(void)
 					if(uartData[0] == 0b00000011){
 						//ToDo: need stepper motor/weight estimate for chassis. 	
 						//clockwise rotation
+						uartPacketReady = false;
 						driveStepper(((uartData[1]<<8) | uartData[2]), 0);
 					}
 					uartPacketReady = false;
@@ -510,7 +512,7 @@ ISR(TIMER0_OVF_vect){
 		//(pulse/sec)*(rotation/2000)*(60sec/min)
 //		RPM = (rotation*(3/100));
 		PIDinput = rotation;		
-		uartSendc(rotation);
+//		uartSendc(rotation);
 		PIDcompute();
 		//Send back data
 //		uartSendc((uint16_t)RPM>>8);
