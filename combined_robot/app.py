@@ -73,12 +73,12 @@ class App:
                 # Make the robot move toward the object
                 if x < width // 2:
                     if direction >= 0:
-                        print "going right"
+                        print "Going right"
                         self.robotq.put((1, 100000, 0))
                         direction = -1
                 elif x > width // 2:
                     if direction <= 0:
-                        print "going left"
+                        print "Going left"
                         self.robotq.put((1, 100000, 1))
                         direction = 1
                 else:

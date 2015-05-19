@@ -65,5 +65,4 @@ class Robot(object):
         byte3 = 0
         packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
 
-        print "Shooting"
         self.port.write(packet)
