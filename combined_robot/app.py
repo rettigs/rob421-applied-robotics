@@ -43,7 +43,7 @@ class App:
     def onrect(self, rect):
         frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         tracker = MOSSE(frame_gray, rect)
-        self.trackers.append(tracker)
+        self.trackers = [tracker]
 
     def drawcrosshairs(self, img, width, height, color=(0, 255, 255), thickness=1):
         p0 = int(width // 2), int(height // 2) - int(height // 10)
@@ -86,7 +86,6 @@ class App:
                     self.robotq.put((1, 0, 0))
                     direction = 0
                     self.robotq.put('shoot')
-                    self.trackers = []
             elif direction != 0:
                 self.robotq.put((1, 0, 0))
                 direction = 0
