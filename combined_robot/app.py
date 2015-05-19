@@ -46,11 +46,11 @@ class App:
         self.trackers.append(tracker)
 
     def drawcrosshairs(self, img, width, height, color=(0, 255, 255), thickness=1):
-        p0 = int(width // 2), 0
-        p1 = int(width // 2), int(height)
+        p0 = int(width // 2), int(height // 2) - int(height // 10)
+        p1 = int(width // 2), int(height // 2) + int(height // 10)
         cv2.line(img, p0, p1, color, thickness)
-        p0 = 0, int(height // 2)
-        p1 = int(width), int(height // 2)
+        p0 = int(width// 2) - int(width // 10), int(height // 2)
+        p1 = int(width// 2) + int(width // 10), int(height // 2)
         cv2.line(img, p0, p1, color, thickness)
 
     def run(self):
