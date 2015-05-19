@@ -168,8 +168,10 @@ class RectSelector:
         if self.drag_start:
             if self.dragging:
                 xo, yo = self.drag_start
-                x0, y0 = np.minimum([xo, yo], [x, y])
-                x1, y1 = np.maximum([xo, yo], [x, y])
+                xd = abs(xo - x)
+                yd = abs(yo - y)
+                x0, y0 = xo - xd, yo - yd
+                x1, y1 = xo + xd, yo + yd
                 self.drag_rect = None
                 if x1-x0 > 0 and y1-y0 > 0:
                     self.drag_rect = (x0, y0, x1, y1)
