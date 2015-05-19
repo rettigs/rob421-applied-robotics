@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
+from __future__ import division
+
+import cv
 import cv2
-import numpy as np
 import video
 
-from common import draw_str, RectSelector
+from common import RectSelector
 from mosse import MOSSE
 
 # Constants
@@ -43,7 +45,16 @@ class App:
         tracker = MOSSE(frame_gray, rect)
         self.trackers.append(tracker)
 
+    def drawcrosshairs(self, img, width, height, color=(0, 255, 255), thickness=1):
+        p0 = int(width // 2), 0
+        p1 = int(width // 2), int(height)
+        cv2.line(img, p0, p1, color, thickness)
+        p0 = 0, int(height // 2)
+        p1 = int(width), int(height // 2)
+        cv2.line(img, p0, p1, color, thickness)
+
     def run(self):
+        direction = 0
         while True:
             ret, self.frame = self.cap.read()
             if not ret:
@@ -53,23 +64,34 @@ class App:
                 tracker.update(frame_gray)
 
             vis = self.frame.copy()
+            width = self.cap.get(cv.CV_CAP_PROP_FRAME_WIDTH)
+            height = self.cap.get(cv.CV_CAP_PROP_FRAME_HEIGHT)
             if len(self.trackers) > 0:
                 x, _ = self.trackers[0].draw_state(vis)
+                x = int(x)
 
                 # Make the robot move toward the object
-                width = 640
-                x = int(x)
                 if x < width // 2:
-                    print "going right"
-                    self.robotq.put((1, abs(width // 2 - x) * 20, 0))
+                    if direction >= 0:
+                        print "going right"
+                        self.robotq.put((1, 100000, 0))
+                        direction = -1
                 elif x > width // 2:
-                    print "going left"
-                    self.robotq.put((1, abs(width // 2 - x) * 20, 1))
+                    if direction <= 0:
+                        print "going left"
+                        self.robotq.put((1, 100000, 1))
+                        direction = 1
                 else:
                     print "Cup targeting complete; shooting"
+                    self.robotq.put((1, 0, 0))
+                    direction = 0
                     self.robotq.put('shoot')
                     self.trackers = []
+            elif direction != 0:
+                self.robotq.put((1, 0, 0))
+                direction = 0
 
+            self.drawcrosshairs(vis, width, height)
             self.rect_sel.draw(vis)
 
             cv2.imshow('frame', vis)
