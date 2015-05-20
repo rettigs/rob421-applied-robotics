@@ -19,7 +19,7 @@ class App:
         _, self.frame = self.cap.read()
         cv2.namedWindow('frame')
         cv2.createTrackbar('row', 'frame', 0, 2, self.onrow)
-        cv2.createTrackbar('speed', 'frame', 1000, 10000, self.onspeed)
+        cv2.createTrackbar('speed', 'frame', 3920, 5000, self.onspeed)
         cv2.imshow('frame', self.frame)
         self.rect_sel = RectSelector('frame', self.onrect)
         self.trackers = []
@@ -31,9 +31,9 @@ class App:
 
     def onrow(self, row):
         '''When the row is changed, update the speed.'''
-        if   row == 0: speed = 1000
-        elif row == 1: speed = 1005
-        elif row == 2: speed = 1010
+        if   row == 0: speed = 3920
+        elif row == 1: speed = 3930
+        elif row == 2: speed = 3940
         cv2.setTrackbarPos('speed', 'frame', speed)
 
     def onspeed(self, speed):
@@ -57,6 +57,7 @@ class App:
         direction = 0
         while True:
             ret, self.frame = self.cap.read()
+            self.frame = cv2.flip(self.frame, -1)
             if not ret:
                 break
             frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
