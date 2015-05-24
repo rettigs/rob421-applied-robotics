@@ -77,23 +77,10 @@ void uartInit(void){
 void timer0Init(){
 	//Timekeeper timer	
 	TIMSK0 |= (1<<TOIE0);
-	//61 ticks is a second. 6.1 ticks is a .1 sec
-	//Prescaler set to:1024    F_CPU = 16000000
-//	TCCR0B |= (1<<CS02) | (1<<CS00);
+
 	//Clk divider by 256
 	TCCR0B |= (1<<CS02);
-	/*
-	//Put in CTC mode
-	TCCR0A |= (1<<WGM01);
-	//Prescaler set to:1024   F_CPU = 16000000
-	//With top of 156 should CTC at 100Hz
-	TCCR0B |= (1<<CS02) | (1<<CS00);
-	//Enable interrupt
-	TIMSK0 |= 
-	//Set timer TOP to 156 (100Hz)
-	OCR0A = 156;
-	//start timer at bottom
-	*/
+	
 	TCNT0 = 0;
 	
 }
@@ -135,6 +122,7 @@ void timer2Init(){
 void timer3Init(){
 	//This timer is set for 20ms periods for servo control. 
 	//Outputs on OC3A (DIGITAL 5)
+	//Outputs on OC3B (DIGITAL 2)
 	//Set to Fast PWM
 	//Set to inverting PWM mode
 	TCCR3A |= (1<<WGM31) | (1<<COM3A1) | (1<<COM3A0);
@@ -144,8 +132,9 @@ void timer3Init(){
 	ICR3 = 1250; 
 	//Set toggle point
 	OCR3A = 1250;
+	OCR3B = 1250;
 	//set to output
-	DDRE |= (1<<PE3);
+	DDRE |= (1<<PE3 | (1<<PE4));
 }
 
 void timer5Init() {
@@ -159,7 +148,6 @@ void timer5Init() {
 }
 
 void externalInterrupts(void){
-	//PE4 is Digital Pin 2
 	//PE5 is Digital Pin 3
 	//PD2 is Int2 on Digital Pin 19
 	DDRD &= ~(1<<PD2);
@@ -169,11 +157,8 @@ void externalInterrupts(void){
 	PORTE |= (1<<PE5);
 	//Trigger INT2 on falling edge
 	EICRA |= (1<<ISC21); 
-	//Set pin 4 to input can be input or output to work
-	//Falling edge on INT4 or rising edge on INT5 generates interrupt
-	EICRB |= (1<<ISC41) | (1<<ISC51); // comment out so low level sets interrupt
-	//Look for interrupts on DIGITAL PIN 4 
-	EIMSK |= (1<<INT4) | (1<<INT5) | (1<<INT2);
+	//Enable interrupts from pin 3 and 19 
+	EIMSK |= (1<<INT5) | (1<<INT2);
 	
 }
 
@@ -441,18 +426,19 @@ int main(void)
 						Setpoint = uartData[1]; 
 						PIDsetTunings(4,uartData[2],0);
 					}
-					
-					
+					//Swatter Dev Function
+					if(uartData[0] == 0x44){
+						OCR3B = 1235;
+					}
 					
 					//Motor 0 (launcher) forward control
 					//HEX CODE: 00 XX XX
 					if(uartData[0] == 0b00000000){
-						//NOTE TOP IS 0X03FF!
+						//NOTE: TOP IS 0X03FF!
 						//Max distance is 0x56
 						//Min distance is 0x51
 						PORTB &= ~(1<<PB7);
 						Setpoint = (uartData[1]<<8) | uartData[2];
-	//					OCR1AL = uartData[2];
 	//					uartSendc(uartData[1]);
 	//					uartSendc(uartData[2]);
 					}	
@@ -460,9 +446,7 @@ int main(void)
 					//HEX CODE: 01	XX	XX	
 					if(uartData[0] == 0b00000001){
 						PORTB |= (1<<PB7);
-						Setpoint = (uartData[1]<<8) | uartData[2];
-//						OCR1AL = uartData[2]; 
-
+						Setpoint = (uartData[1]<<8) | uartData[2]; 
 					}
 					//Reload Command
 					//TT= 01
@@ -471,22 +455,18 @@ int main(void)
 						//Move servo backward.
 						OCR3A = 1235;
 						//Set up external interrupt to stop servo when sensor is touched
-						
 						//Reverse direction of Servo and move backward.
-
 					}
 					//Carriage (Motor 1) forward control
 					//HEX CODE: 02 XX XX
 					if(uartData[0] == 0b00000010){
-						//ToDo: need stepper motor/weight estimate for chassis.
 						//counterclockwise rotation
 						uartPacketReady = false;
 						driveStepper(((uartData[1]<<8) | uartData[2]), 1);
 					}
 					//Carriage (Motor 1) backward control
 					//HEX CODE: 03 XX XX
-					if(uartData[0] == 0b00000011){
-						//ToDo: need stepper motor/weight estimate for chassis. 	
+					if(uartData[0] == 0b00000011){	
 						//clockwise rotation
 						uartPacketReady = false;
 						driveStepper(((uartData[1]<<8) | uartData[2]), 0);
@@ -499,34 +479,24 @@ int main(void)
 
 
 ISR(TIMER0_OVF_vect){
-	//60 ticks is a second. 6 is a .1 sec
-	//only send speed once a second.
-	/*
-		Ticks every 4 seconds.....
-	*/
-//	if(tick == 3){
+	if(tick == 60){
+			uartSendc(rotation);
+			tick = 0;
+		}
+		tick++;
 		//Read number of pulses counted
 		rotation = TCNT5; 
 		//reset counter. 
 		TCNT5 = 0; 
-		//(pulse/sec)*(rotation/2000)*(60sec/min)
-//		RPM = (rotation*(3/100));
+		
 		PIDinput = rotation;		
-//		uartSendc(rotation);
 		PIDcompute();
 		//Send back data
 //		uartSendc((uint16_t)RPM>>8);
 //		uartSendc((uint8_t)RPM);
-//		tick = 0;
-//	}
-//	tick++;
+	
 }
 
-ISR(INT4_vect){
-	//Optical encoder feedback from Launching motor
-	//Input pin is Digital 2
-//	rotation++;
-}
 ISR(INT5_vect){
 	//Forward limit switch - stop the motor from moving.
 	//Switch should be attached to ground and Digital 3
@@ -537,7 +507,6 @@ ISR(INT2_vect){
 	//Rear limit switch - reverses direction of motor.
 	//Should be attached to ground and Digital 19.
 	OCR3A = 1171;
-//	uartSendc(0x0f);
 	_delay_ms(20);
 	OCR3A = 1157;
 }
