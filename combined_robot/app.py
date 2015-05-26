@@ -18,8 +18,11 @@ class App:
         self.cap = video.create_capture(video_src)
         _, self.frame = self.cap.read()
         cv2.namedWindow('frame')
+        self.row = 0
+        self.bounceshot = 0
         cv2.createTrackbar('row', 'frame', 0, 2, self.onrow)
         cv2.createTrackbar('speed', 'frame', 3920, 5000, self.onspeed)
+        cv2.createTrackbar('bounceshot', 'frame', 0, 1, self.onbounceshot)
         cv2.imshow('frame', self.frame)
         self.rect_sel = RectSelector('frame', self.onrect)
         self.trackers = []
@@ -31,14 +34,25 @@ class App:
 
     def onrow(self, row):
         '''When the row is changed, update the speed.'''
-        if   row == 0: speed = 3920
-        elif row == 1: speed = 3930
-        elif row == 2: speed = 3940
+        self.row = row
+        if self.bounceshot:
+            if   row == 0: speed = 1920
+            elif row == 1: speed = 1930
+            elif row == 2: speed = 1940
+        else:
+            if   row == 0: speed = 3920
+            elif row == 1: speed = 3930
+            elif row == 2: speed = 3940
         cv2.setTrackbarPos('speed', 'frame', speed)
 
     def onspeed(self, speed):
         '''When the speed is changed, send it to the robot.'''
         self.robotq.put((0, speed))
+
+    def onbounceshot(self, bounceshot):
+        '''When the speed is changed, send it to the robot.'''
+        self.bounceshot = bounceshot
+        self.onrow(self.row)
 
     def onrect(self, rect):
         frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
