@@ -83,10 +83,9 @@ class App:
                         self.robotq.put((1, 100000, 1))
                         direction = 1
                 else:
-                    print "Cup targeting complete; shooting"
+                    print "Cup targeting complete"
                     self.robotq.put((1, 0, 0))
                     direction = 0
-                    self.robotq.put('shoot')
             elif direction != 0:
                 self.robotq.put((1, 0, 0))
                 direction = 0
@@ -99,7 +98,8 @@ class App:
             if ch == 27:
                 break
             if ch == ord(' '):
-                self.paused = not self.paused
+                print "Shooting"
+                self.robotq.put('shoot')
             if ch == ord('c'):
                 self.trackers = []
         cv2.destroyAllWindows()
