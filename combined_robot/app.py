@@ -57,7 +57,6 @@ class App:
         direction = 0
         while True:
             ret, self.frame = self.cap.read()
-            self.frame = cv2.flip(self.frame, -1)
             if not ret:
                 break
             frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
