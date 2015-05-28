@@ -388,7 +388,7 @@ int main(void)
 	
 	PIDsetTunings(4,2,0);
 	PIDsetSampleTime(4);
-	PIDsetOutputLimits(0,0x03ff); 
+	PIDsetOutputLimits(0,0xfff); 
 	PIDsetMode(AUTOMATIC);
 	PIDsetControllerDirection(DIRECT);
 	PIDinitialize();

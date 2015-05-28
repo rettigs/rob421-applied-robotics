@@ -1026,11 +1026,11 @@ int main(void)
      8c6:	84 e0       	ldi	r24, 0x04	; 4
      8c8:	90 e0       	ldi	r25, 0x00	; 0
      8ca:	07 df       	rcall	.-498    	; 0x6da <PIDsetSampleTime>
-	PIDsetOutputLimits(0,0x03ff); 
+	PIDsetOutputLimits(0,0xfff); 
      8cc:	20 e0       	ldi	r18, 0x00	; 0
-     8ce:	30 ec       	ldi	r19, 0xC0	; 192
+     8ce:	30 ef       	ldi	r19, 0xF0	; 240
      8d0:	4f e7       	ldi	r20, 0x7F	; 127
-     8d2:	54 e4       	ldi	r21, 0x44	; 68
+     8d2:	55 e4       	ldi	r21, 0x45	; 69
      8d4:	c8 01       	movw	r24, r16
      8d6:	b7 01       	movw	r22, r14
      8d8:	54 df       	rcall	.-344    	; 0x782 <PIDsetOutputLimits>
@@ -1048,7 +1048,7 @@ void PIDsetControllerDirection(int Direction)
      8e4:	10 92 0e 02 	sts	0x020E, r1
 	PIDsetTunings(4,2,0);
 	PIDsetSampleTime(4);
-	PIDsetOutputLimits(0,0x03ff); 
+	PIDsetOutputLimits(0,0xfff); 
 	PIDsetMode(AUTOMATIC);
 	PIDsetControllerDirection(DIRECT);
 	PIDinitialize();
