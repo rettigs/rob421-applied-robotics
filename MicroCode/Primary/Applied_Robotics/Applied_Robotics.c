@@ -476,6 +476,7 @@ int main(void)
 				if(OCR1A >= 1000){
 					if(rotation == 0){
 						OCR1A = 0; 
+						Setpoint = 0;
 						uartSends("MOTOR STALL");
 					}
 				}
