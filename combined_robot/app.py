@@ -21,7 +21,7 @@ class App:
         self.row = 0
         self.bounceshot = 0
         cv2.createTrackbar('row', 'frame', 0, 2, self.onrow)
-        cv2.createTrackbar('speed', 'frame', 3920, 5000, self.onspeed)
+        cv2.createTrackbar('speed', 'frame', 3920, 10000, self.onspeed)
         cv2.createTrackbar('bounceshot', 'frame', 0, 1, self.onbounceshot)
         cv2.imshow('frame', self.frame)
         self.rect_sel = RectSelector('frame', self.onrect)
@@ -50,7 +50,7 @@ class App:
         self.robotq.put((0, speed))
 
     def onbounceshot(self, bounceshot):
-        '''When the speed is changed, send it to the robot.'''
+        '''When we toggle bounce shots, update the speed.'''
         self.bounceshot = bounceshot
         self.onrow(self.row)
 
@@ -88,13 +88,13 @@ class App:
                 # Make the robot move toward the object
                 if x < width // 2:
                     if direction >= 0:
-                        print "Going right"
-                        self.robotq.put((1, 100000, 0))
+                        print "Going left"
+                        self.robotq.put((1, 100000, 1))
                         direction = -1
                 elif x > width // 2:
                     if direction <= 0:
-                        print "Going left"
-                        self.robotq.put((1, 100000, 1))
+                        print "Going right"
+                        self.robotq.put((1, 100000, 0))
                         direction = 1
                 else:
                     print "Cup targeting complete"
@@ -111,6 +111,12 @@ class App:
             ch = cv2.waitKey(10)
             if ch == 27:
                 break
+            if ch == ord('d'):
+                print "Manually going right"
+                self.robotq.put((1, 10, 1))
+            if ch == ord('a'):
+                print "Manually going left"
+                self.robotq.put((1, 10, 0))
             if ch == ord(' '):
                 print "Shooting"
                 self.robotq.put('shoot')
