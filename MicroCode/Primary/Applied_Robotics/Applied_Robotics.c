@@ -31,6 +31,8 @@ volatile bool rotationUpdated = 0;
 volatile float RPM; 
 volatile uint8_t timeoutCounter = 0;
 volatile bool timeoutCheck = 0; 
+volatile uint8_t pauseCounter = 0; 
+volatile bool pauseCheck = 0; 
 
 volatile uint8_t uartData[3] = {0,0,0};
 volatile uint8_t i = 0;
@@ -86,12 +88,12 @@ void timer1Init(){
 	//OC1A is Digital 11 (PB5) Launcher
 	//OC1b is Digital 12 (PB6) Swatter
 	//Fast PWM Top set by OCR1A (Non-Inverting PWM)
-	TCCR1A |= (1<<COM1A1) | (1<<COM1B1) | (1<<WGM11) | (1<<WGM10);
-	//Clock divider 256. (overflow every 1.048 sec)
-	TCCR1B |= (1<<WGM12) | (1<<WGM13) | (1<<CS10);
+	TCCR1A |= (1<<COM1A1) | (1<<WGM11) | (1<<WGM10);
+	//Clock divider 1. 
+	TCCR1B |= (1<<WGM12) | (1<<WGM12) | (1<<CS10);
 	DDRB |= (1<<PB5) | (1<<PB6);
 	//set register 
-	OCR1A = 0;
+	ICR1 = 0;
 	OCR1B = 0;
 }
 
@@ -388,7 +390,7 @@ int main(void)
 	
 	PIDsetTunings(4,2,0);
 	PIDsetSampleTime(4);
-	PIDsetOutputLimits(0,0xfff); 
+	PIDsetOutputLimits(0,0x3ff); 
 	PIDsetMode(AUTOMATIC);
 	PIDsetControllerDirection(DIRECT);
 	PIDinitialize();
@@ -438,14 +440,16 @@ int main(void)
 						//NOTE: TOP IS 0X03FF!
 						//Max distance is 0x56
 						//Min distance is 0x51
-						PORTB &= ~(1<<PB7);
+						PORTB |= (1<<PB7);
 						Setpoint = (uartData[1]<<8) | uartData[2];
+			//			OCR1A = (uartData[1]<<8) | uartData[2];
 					}	
 					//Motor 0 (launcher) backward control
 					//HEX CODE: 01	XX	XX	
 					if(uartData[0] == 0b00000001){
-						PORTB |= (1<<PB7);
+						PORTB &= ~(1<<PB7);
 						Setpoint = (uartData[1]<<8) | uartData[2]; 
+			//			OCR1A = (uartData[1]<<8) | uartData[2];
 					}
 					//Reload Command
 					//TT= 01
@@ -456,6 +460,12 @@ int main(void)
 						//start timeout
 						timeoutCheck = 1;
 						timeoutCounter = 0;
+					}
+					//Swat!
+					//HEX CODE: 50 00 00 
+					if(uartData[0] == 0b11000000){
+						
+						
 					}
 					//Carriage (Motor 1) forward control
 					//HEX CODE: 02 XX XX
@@ -473,13 +483,13 @@ int main(void)
 					}
 					uartPacketReady = false;
 				}
-				if(OCR1A >= 1000){
-					if(rotation == 0){
-						OCR1A = 0; 
-						Setpoint = 0;
-						uartSends("MOTOR STALL");
-					}
-				}
+//				if(OCR1A >= 1000){
+//					if(rotation == 0){
+//						OCR1A = 0; 
+//						Setpoint = 0;
+//						uartSends("MOTOR STALL");
+//					}
+//				}
 				_delay_ms(1);
 		}
 }
@@ -487,34 +497,43 @@ int main(void)
 
 ISR(TIMER0_OVF_vect){
 	//increment counter every ~50ms
-	if((tick == 30) | (tick == 60)){
+	if((tick == 120) | (tick == 60)){
 		//If servo is moving for more than 1.5s it is probably stalled.
-		if(timeoutCounter >= 3){
+		if(timeoutCounter >= 5){
 			//Stop servo
 			OCR3A = 1171;
+		}
+		if(pauseCounter >= 2){
+			//interrupt driven wait has expired.
+			//move servo forward and start timeout counter. 
+			OCR3A = 1157;
+			timeoutCheck = 1;
 		}
 		//Check if timeout flag is set (the servo is moving)
 		if(timeoutCheck == 1){
 			timeoutCounter++; 
 		}
+		if(pauseCheck == 1) {
+			pauseCounter++;
+		}
 		//PG2 is connected as input with pullup. Other wire is grounded.   
 		//IF switch is thrown then PG2 is pulled low signaling our turn has started. 
-		if(PING & (1<<PING2)){
-			uartSendc(0x77); 
-		}
+//		if(PING & (1<<PING2)){
+//			uartSendc(0x77); 
+//		}
 	}
-	if(tick == 60){
+	if(tick == 120){
 			uartSendc(rotation);
 			tick = 0;
-		}
-		tick++;
-		//Read number of pulses counted
-		rotation = TCNT5; 
-		//reset counter. 
-		TCNT5 = 0; 
+	}
+	tick++;
+	//Read number of pulses counted
+	rotation = TCNT5; 
+	//reset counter. 
+	TCNT5 = 0; 
 		
-		PIDinput = rotation;		
-		PIDcompute();	
+	PIDinput = rotation;		
+	PIDcompute();	
 }
 
 ISR(INT5_vect){
@@ -524,6 +543,8 @@ ISR(INT5_vect){
 	//Motor is now stopped. Reset timeouts
 	timeoutCheck = 0;
 	timeoutCounter = 0; 
+	pauseCheck = 0;
+	pauseCounter = 0; 
 }
 ISR(INT2_vect){
 	//Rear limit switch - reverses direction of motor.
@@ -532,10 +553,11 @@ ISR(INT2_vect){
 	timeoutCheck = 0;
 	timeoutCounter = 0;
 	OCR3A = 1171;
-	_delay_ms(20);
+//	_delay_ms(100);
 	//Start timeoutCheck when motor changed direction
-	timeoutCheck = 1;
-	OCR3A = 1157;
+//	timeoutCheck = 1;
+	pauseCheck = 1; 
+//	OCR3A = 1157;
 	
 }
 
