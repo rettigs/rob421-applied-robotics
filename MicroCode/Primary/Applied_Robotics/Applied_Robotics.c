@@ -118,11 +118,11 @@ void timer2Init(){
 
 void timer3Init(){
 	//This timer is set for 20ms periods for servo control. 
-	//Outputs on OC3A (DIGITAL 5)
-	//Outputs on OC3B (DIGITAL 2)
+	//Outputs on OC3A (DIGITAL 5) (PE3) - Reloader arm
+	//Outputs on OC3B (DIGITAL 2) (PE4) - Reserved for swatter
 	//Set to Fast PWM
 	//Set to inverting PWM mode
-	TCCR3A |= (1<<WGM31) | (1<<COM3A1) | (1<<COM3A0);
+	TCCR3A |= (1<<WGM31) | (1<<COM3A1) | (1<<COM3A0) | (1<<COM3B1) | (1<<COM3B0);
 	//Set to PWM mode with clk divider of 256. 
 	TCCR3B |= (1<<WGM32) | (1<<WGM33) | (1<<CS32);
 	//Set TOP of counter
@@ -426,13 +426,6 @@ int main(void)
 						OCR3B = 1235;
 					}
 					
-					//Toggle on/off Reloader
-					if(uartData[0] == 0x99){
-						//toggle on/off PWM output
-						TCCR3B ^= ((1<<COM3A1) | (1<<COM3A0));
-						//toggle on/off external interrupts
-						EIMSK ^= ((1<<INT5) | (1<<INT2));
-					}
 					
 					//Motor 0 (launcher) forward control
 					//HEX CODE: 00 XX XX
@@ -461,12 +454,15 @@ int main(void)
 						timeoutCheck = 1;
 						timeoutCounter = 0;
 					}
-					//Swat!
-					//HEX CODE: 50 00 00 
-					if(uartData[0] == 0b11000000){
-						
-						
+					//HEX CODE: 04 00 00 
+					//Swatter Control
+					if(uartData[0] == 0b00000100){
+						//04 04c4 Max Right
+						//0404a0 Centered 
+						//040480 Max Dir
+						OCR3B = (uartData[1]<<8) | uartData[2];
 					}
+					
 					//Carriage (Motor 1) forward control
 					//HEX CODE: 02 XX XX
 					if(uartData[0] == 0b00000010){
@@ -552,6 +548,7 @@ ISR(INT2_vect){
 	//Turn off timeoutCheck and reset timeoutCount
 	timeoutCheck = 0;
 	timeoutCounter = 0;
+	_delay_ms(20);
 	OCR3A = 1171;
 //	_delay_ms(100);
 	//Start timeoutCheck when motor changed direction
