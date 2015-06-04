@@ -10,9 +10,9 @@ OFFSET_MAGNITUDE1 = 8
 OFFSET_MAGNITUDE2 = 0
 PACKET_DEVICE = 0b00
 PACKET_SHOOT = 0b01
-PACKET_SWAT = 0b10
 LAUNCH = 0
 CARRIAGE = 1
+SWAT = 2
 
 class Robot(object):
 
@@ -22,9 +22,11 @@ class Robot(object):
         self.robotq = robotq
         self.appq = appq
         self.launchspeed = launchspeed
+        self.swatted = False
 
     def main(self):
         self.speeds[1] = 0
+        self.unswat()
         while True:
 
             # Check for work from the GUI
@@ -33,6 +35,7 @@ class Robot(object):
             else:
                 if work == 'exit': exit()
                 elif work == 'shoot': self.shoot()
+                elif work == 'swat': self.swat()
                 else:
                     self.setSpeed(*work)
 
@@ -68,6 +71,29 @@ class Robot(object):
         byte1 = (PACKET_SHOOT << OFFSET_TYPE)
         byte2 = 0
         byte3 = 0
+        packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
+
+        self.port.write(packet)
+
+    def swat(self):
+        byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (SWAT << OFFSET_ID)
+        if not self.swatted:
+            pos = 1220
+            self.swatted = True
+        else:
+            pos = 1152
+            self.swatted = False
+        byte2 = (pos >> OFFSET_MAGNITUDE1) & 0b11111111
+        byte3 = (pos >> OFFSET_MAGNITUDE2) & 0b11111111
+        packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
+
+        self.port.write(packet)
+
+    def unswat(self):
+        byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (SWAT << OFFSET_ID)
+        pos = 1152
+        byte2 = (pos >> OFFSET_MAGNITUDE1) & 0b11111111
+        byte3 = (pos >> OFFSET_MAGNITUDE2) & 0b11111111
         packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
 
         self.port.write(packet)

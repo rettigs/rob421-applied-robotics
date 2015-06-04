@@ -123,6 +123,9 @@ class App:
             if ch == ord(' '):
                 print "Shooting"
                 self.robotq.put('shoot')
+            if ch == ord('s'):
+                print "Swatting"
+                self.robotq.put('swat')
             if ch == ord('c'):
                 self.trackers = []
         cv2.destroyAllWindows()
