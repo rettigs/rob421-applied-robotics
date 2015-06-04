@@ -2,11 +2,8 @@
 
 from __future__ import division
 
-import math
-
 import cv
 import cv2
-import numpy as np
 import video
 
 from common import draw_str, RectSelector
@@ -15,46 +12,26 @@ from mosse import MOSSE
 # Constants
 LAUNCH = 0
 CARRIAGE = 1
-SWAT = 2
 
 class App:
-    def __init__(self, maincap, bouncecap, robotq, appq, launchspeed):
-        self.maincap = video.create_capture(maincap)
-        self.bouncecap = video.create_capture(bouncecap)
-        _, self.mainframe = self.maincap.read()
-        cv2.namedWindow('mainframe')
-        cv2.namedWindow('bounceframe')
+    def __init__(self, video_src, robotq, appq, launchspeed):
+        self.cap = video.create_capture(video_src)
+        _, self.frame = self.cap.read()
+        cv2.namedWindow('frame')
         self.row = 0
         self.bounceshot = 0
-        cv2.createTrackbar('row', 'mainframe', 0, 2, self.onrow)
-        cv2.createTrackbar('speed', 'mainframe', 0, 512, self.onspeed)
-        cv2.createTrackbar('bounceshot', 'mainframe', 0, 1, self.onbounceshot)
-        cv2.imshow('mainframe', self.mainframe)
-        self.rect_sel = RectSelector('mainframe', self.onrect)
+        cv2.createTrackbar('row', 'frame', 0, 2, self.onrow)
+        cv2.createTrackbar('speed', 'frame', 0, 512, self.onspeed)
+        cv2.createTrackbar('bounceshot', 'frame', 0, 1, self.onbounceshot)
+        cv2.imshow('frame', self.frame)
+        self.rect_sel = RectSelector('frame', self.onrect)
         self.trackers = []
         self.robotq = robotq
         self.appq = appq
         self.launchspeed = launchspeed
 
-        ret, self.prevbounce = self.bouncecap.read()
-        self.prevbouncegray = cv2.cvtColor(self.prevbounce, cv2.COLOR_BGR2GRAY)
-
     def nothing(*arg):
         pass
-
-    def draw_flow(img, flow, step=32):
-        h, w = img.shape[:2]
-        y, x = np.mgrid[step/2:h:step, step/2:w:step].reshape(2,-1)
-        fx, fy = flow[y,x].T
-        lines = np.vstack([x, y, x+fx, y+fy]).T.reshape(-1, 2, 2)
-        lines = np.int32(lines + 0.5)
-        vis = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        cv2.polylines(vis, lines, 0, (0, 255, 0)) 
-        for (x1, y1), (x2, y2) in lines:
-            cv2.circle(vis, (x1, y1), 1, (0, 255, 0), -1) 
-            mag = math.sqrt((x2-x1)**2 + (y2-y1)**2)
-            draw_str(vis, (x1, y1), "{}".format(int(mag)))
-        return vis
 
     def onrow(self, row):
         '''When the row is changed, update the speed.'''
@@ -79,7 +56,7 @@ class App:
         self.onrow(self.row)
 
     def onrect(self, rect):
-        frame_gray = cv2.cvtColor(self.mainframe, cv2.COLOR_BGR2GRAY)
+        frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         tracker = MOSSE(frame_gray, rect)
         self.trackers = [tracker]
 
@@ -94,17 +71,17 @@ class App:
     def run(self):
         direction = 0
         while True:
-            ret, self.mainframe = self.maincap.read()
-            self.mainframe = cv2.flip(self.mainframe, -1)
+            ret, self.frame = self.cap.read()
+            self.frame = cv2.flip(self.frame, -1)
             if not ret:
                 break
-            frame_gray = cv2.cvtColor(self.mainframe, cv2.COLOR_BGR2GRAY)
+            frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             for tracker in self.trackers:
                 tracker.update(frame_gray)
 
-            vis = self.mainframe.copy()
-            width = self.maincap.get(cv.CV_CAP_PROP_FRAME_WIDTH)
-            height = self.maincap.get(cv.CV_CAP_PROP_FRAME_HEIGHT)
+            vis = self.frame.copy()
+            width = self.cap.get(cv.CV_CAP_PROP_FRAME_WIDTH)
+            height = self.cap.get(cv.CV_CAP_PROP_FRAME_HEIGHT)
             if len(self.trackers) > 0:
                 x, _ = self.trackers[0].draw_state(vis)
                 x = int(x)
@@ -133,18 +110,7 @@ class App:
 
             draw_str(vis, (5, 15), "Launch speed: {}".format(self.launchspeed.value))
 
-            ret, self.bounceframe = self.bouncecap.read()
-            self.bounceframe = cv2.flip(self.bounceframe, -1)
-            if not ret:
-                break
-
-            self.bouncegray = cv2.cvtColor(self.bounceframe, cv2.COLOR_BGR2GRAY)
-            bounceflow = cv2.calcOpticalFlowFarneback(self.prevbouncegray, self.bouncegray, 0.5, 3, 15, 3, 5, 1.2, 0)
-            self.prevbouncegray = self.bouncegray
-
-            cv2.imshow('bounceframe', self.draw_flow(self.bouncegray, bounceflow))
-
-            cv2.imshow('mainframe', vis)
+            cv2.imshow('frame', vis)
             ch = cv2.waitKey(10)
             if ch == 27:
                 break
