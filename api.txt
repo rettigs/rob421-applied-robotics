@@ -17,8 +17,8 @@ Data packet format:
 
 TTIIIIID MMMMMMMM
 
-T = Type of packet (00 = motor/sensor, 01 = reload, 10 = swat)
-I = ID of device (0 = launch motor, 1 = carriage motor, others tba)
+T = Type of packet (00 = motor/sensor, 01 = reload)
+I = ID of device (0 = launch motor, 1 = carriage motor, 2 = swat motor)
 D = Direction bit (0 = forward, 1 = backward)
 M = Magnitude (e.g. motor speed or sensor reading)
 
