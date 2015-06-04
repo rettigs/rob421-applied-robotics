@@ -21,7 +21,7 @@ class App:
         self.row = 0
         self.bounceshot = 0
         cv2.createTrackbar('row', 'frame', 0, 2, self.onrow)
-        cv2.createTrackbar('speed', 'frame', 3920, 10000, self.onspeed)
+        cv2.createTrackbar('speed', 'frame', 500, 1024, self.onspeed)
         cv2.createTrackbar('bounceshot', 'frame', 0, 1, self.onbounceshot)
         cv2.imshow('frame', self.frame)
         self.rect_sel = RectSelector('frame', self.onrect)
@@ -36,13 +36,13 @@ class App:
         '''When the row is changed, update the speed.'''
         self.row = row
         if self.bounceshot:
-            if   row == 0: speed = 1920
-            elif row == 1: speed = 1930
-            elif row == 2: speed = 1940
+            if   row == 0: speed = 310
+            elif row == 1: speed = 300
+            elif row == 2: speed = 290
         else:
-            if   row == 0: speed = 3920
-            elif row == 1: speed = 3930
-            elif row == 2: speed = 3940
+            if   row == 0: speed = 510
+            elif row == 1: speed = 500
+            elif row == 2: speed = 490
         cv2.setTrackbarPos('speed', 'frame', speed)
 
     def onspeed(self, speed):
