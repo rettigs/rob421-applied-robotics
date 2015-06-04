@@ -6,7 +6,7 @@ import cv
 import cv2
 import video
 
-from common import RectSelector
+from common import draw_str, RectSelector
 from mosse import MOSSE
 
 # Constants
@@ -14,7 +14,7 @@ LAUNCH = 0
 CARRIAGE = 1
 
 class App:
-    def __init__(self, video_src, robotq, appq):
+    def __init__(self, video_src, robotq, appq, launchspeed):
         self.cap = video.create_capture(video_src)
         _, self.frame = self.cap.read()
         cv2.namedWindow('frame')
@@ -28,6 +28,7 @@ class App:
         self.trackers = []
         self.robotq = robotq
         self.appq = appq
+        self.launchspeed = launchspeed
 
     def nothing(*arg):
         pass
@@ -106,6 +107,8 @@ class App:
 
             self.drawcrosshairs(vis, width, height)
             self.rect_sel.draw(vis)
+
+            draw_str(vis, (5, 15), "Launch speed: {}".format(self.launchspeed.value))
 
             cv2.imshow('frame', vis)
             ch = cv2.waitKey(10)

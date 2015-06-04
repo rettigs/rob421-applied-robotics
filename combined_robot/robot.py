@@ -16,13 +16,15 @@ CARRIAGE = 1
 
 class Robot(object):
 
-    def __init__(self, serialDevice, robotq, appq):
+    def __init__(self, serialDevice, robotq, appq, launchspeed):
         self.speeds = {}
         self.port = serial.Serial(serialDevice, baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3.0)
         self.robotq = robotq
         self.appq = appq
+        self.launchspeed = launchspeed
 
     def main(self):
+        self.speeds[1] = 0
         while True:
 
             # Check for work from the GUI
@@ -36,6 +38,9 @@ class Robot(object):
 
             # Check for packets from the microcontroller
             self.readPackets()
+
+            # Send the launch motor's speed to the app for display
+            self.launchspeed.value = self.speeds.get(1)
 
     def readPackets(self):
         while self.port.inWaiting() >= 3:

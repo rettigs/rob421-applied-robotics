@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import getopt
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Value
 import sys
 
 from app import App
@@ -44,8 +44,9 @@ if __name__ == '__main__':
             usage()
     
     robotq, appq = Queue(), Queue()
+    launchspeed = Value('i', 0)
 
-    robot = Robot(serialDevice, robotq, appq)
+    robot = Robot(serialDevice, robotq, appq, launchspeed)
     robotProcess = Process(target=robot.main)
     robotProcess.start()
 
@@ -53,4 +54,4 @@ if __name__ == '__main__':
     #opts = dict(opts)
 
     #App(videoDevice, paused = '--pause' in opts).run()
-    App(captureDevice, robotq, appq).run()
+    App(captureDevice, robotq, appq, launchspeed).run()
