@@ -410,9 +410,9 @@ int main(void)
 				
 				if(uartPacketReady == true){ 
 					//Echo back received data
-					uartSendc(uartData[0]);
-					uartSendc(uartData[1]);
-					uartSendc(uartData[2]);
+//					uartSendc(uartData[0]);
+//					uartSendc(uartData[1]);
+//					uartSendc(uartData[2]);
 					//Serial Command Packet: TTIIIIID
 					//TT=00 (motor). IIIII=00000 (launcher motor). D=0/1 (forward/backward)
 					
@@ -519,7 +519,7 @@ ISR(TIMER0_OVF_vect){
 //		}
 	}
 	if(tick == 120){
-			uartSendc(rotation);
+//			uartSendc(rotation);
 			tick = 0;
 	}
 	tick++;
