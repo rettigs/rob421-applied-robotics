@@ -60,14 +60,14 @@ class App:
         '''When the row is changed, update the speed.'''
         self.row = row
         if self.bounceshot:
-            if   row == 0: speed = 140
-            elif row == 1: speed = 145
-            elif row == 2: speed = 150
+            if   row == 0: speed = 160
+            elif row == 1: speed = 165
+            elif row == 2: speed = 170
         else:
-            if   row == 0: speed = 270
-            elif row == 1: speed = 275
-            elif row == 2: speed = 280
-        cv2.setTrackbarPos('speed', 'mainframe', speed)
+            if   row == 0: speed = 230
+            elif row == 1: speed = 235
+            elif row == 2: speed = 240
+        cv2.setTrackbarPos('speed', 'frame', speed)
 
     def onspeed(self, speed):
         '''When the speed is changed, send it to the robot.'''
