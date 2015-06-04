@@ -78,10 +78,11 @@ class Robot(object):
     def swat(self):
         byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (SWAT << OFFSET_ID)
         if not self.swatted:
-            pos = 1220
+            #pos = 1220 # max
+            pos = 1180
             self.swatted = True
         else:
-            pos = 1152
+            pos = 1152 # min
             self.swatted = False
         byte2 = (pos >> OFFSET_MAGNITUDE1) & 0b11111111
         byte3 = (pos >> OFFSET_MAGNITUDE2) & 0b11111111
@@ -92,6 +93,7 @@ class Robot(object):
     def unswat(self):
         byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (SWAT << OFFSET_ID)
         pos = 1152
+        self.swatted = False
         byte2 = (pos >> OFFSET_MAGNITUDE1) & 0b11111111
         byte3 = (pos >> OFFSET_MAGNITUDE2) & 0b11111111
         packet = ''.join(chr(b) for b in [byte1, byte2, byte3])

@@ -21,7 +21,7 @@ class App:
         self.row = 0
         self.bounceshot = 0
         cv2.createTrackbar('row', 'frame', 0, 2, self.onrow)
-        cv2.createTrackbar('speed', 'frame', 500, 1024, self.onspeed)
+        cv2.createTrackbar('speed', 'frame', 0, 512, self.onspeed)
         cv2.createTrackbar('bounceshot', 'frame', 0, 1, self.onbounceshot)
         cv2.imshow('frame', self.frame)
         self.rect_sel = RectSelector('frame', self.onrect)
@@ -37,13 +37,13 @@ class App:
         '''When the row is changed, update the speed.'''
         self.row = row
         if self.bounceshot:
-            if   row == 0: speed = 310
-            elif row == 1: speed = 300
-            elif row == 2: speed = 290
+            if   row == 0: speed = 140
+            elif row == 1: speed = 145
+            elif row == 2: speed = 150
         else:
-            if   row == 0: speed = 510
-            elif row == 1: speed = 500
-            elif row == 2: speed = 490
+            if   row == 0: speed = 270
+            elif row == 1: speed = 275
+            elif row == 2: speed = 280
         cv2.setTrackbarPos('speed', 'frame', speed)
 
     def onspeed(self, speed):
@@ -61,11 +61,11 @@ class App:
         self.trackers = [tracker]
 
     def drawcrosshairs(self, img, width, height, color=(0, 255, 255), thickness=1):
-        p0 = int(width // 2), int(height // 2) - int(height // 10)
-        p1 = int(width // 2), int(height // 2) + int(height // 10)
+        p0 = int(width // 2), 0
+        p1 = int(width // 2), int(height)
         cv2.line(img, p0, p1, color, thickness)
-        p0 = int(width// 2) - int(width // 10), int(height // 2)
-        p1 = int(width// 2) + int(width // 10), int(height // 2)
+        p0 = int(width // 2) - int(width // 10), int(height // 2)
+        p1 = int(width // 2) + int(width // 10), int(height // 2)
         cv2.line(img, p0, p1, color, thickness)
 
     def run(self):
@@ -116,10 +116,10 @@ class App:
                 break
             if ch == ord('d'):
                 print "Manually going right"
-                self.robotq.put((1, 10, 1))
+                self.robotq.put((1, 50, 0))
             if ch == ord('a'):
                 print "Manually going left"
-                self.robotq.put((1, 10, 0))
+                self.robotq.put((1, 50, 1))
             if ch == ord(' '):
                 print "Shooting"
                 self.robotq.put('shoot')
