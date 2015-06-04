@@ -7,6 +7,15 @@ import sys
 from app import App
 from robot import Robot
 
+def usage():
+    print 'Usage: {0} [-s serialdevice] [-c capturedevice] [-h] [-v]... [-d]...'.format(sys.argv[0])
+    print '\t-h\tview this help'
+    print '\t-s\tspecify a serial device to use, defaults to "/dev/ttyACM0"'
+    print '\t-c\tspecify a video capture device to use, defaults to "/dev/video0"'
+    print '\t-v\tenable more verbose messages; use -vv for more even more messages'
+    print '\t-d\tenable debug messages; use -dd for more even more messages'
+    sys.exit(2)
+
 if __name__ == '__main__':
 
     # Defaults
