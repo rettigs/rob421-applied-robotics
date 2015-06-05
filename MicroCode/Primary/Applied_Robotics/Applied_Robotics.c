@@ -33,6 +33,7 @@ volatile uint8_t timeoutCounter = 0;
 volatile bool timeoutCheck = 0; 
 volatile uint8_t pauseCounter = 0; 
 volatile bool pauseCheck = 0; 
+volatile bool launchReady = 0; 
 
 volatile uint8_t uartData[3] = {0,0,0};
 volatile uint8_t i = 0;
@@ -91,7 +92,7 @@ void timer1Init(){
 	TCCR1A |= (1<<COM1A1) | (1<<WGM11) | (1<<WGM10);
 	//Clock divider 1. 
 	TCCR1B |= (1<<WGM12) | (1<<WGM12) | (1<<CS10);
-	DDRB |= (1<<PB5) | (1<<PB6);
+	DDRB |= (1<<PB5);
 	//set register 
 	ICR1 = 0;
 	OCR1B = 0;
@@ -151,10 +152,12 @@ void externalInterrupts(void){
 	PORTD |= (1<<PD2);
 	//Set PE5 to input and enable pullup
 	DDRE &= ~(1<<PE5);
-	PORTE |= (1<<PE5);
-	//Trigger INT2 on falling edge
-	EICRA |= (1<<ISC21); 
-	//Enable interrupts from pin 3 and 19 
+	PORTE |= (1<<PE5);	
+	//Set up PD1 to be input 
+	DDRD &= ~(1<<PD1); 
+	//Trigger INT2 and INT 1 on falling edge
+	EICRA |= (1<<ISC21) | (1<<ISC11); 
+	//Enable interrupts from pin 3 and 19 and 20
 	EIMSK |= (1<<INT5) | (1<<INT2);
 	
 }
@@ -448,11 +451,14 @@ int main(void)
 					//TT= 01
 					//HEX CODE: 40 00 00
 					if(uartData[0] == 0b01000000){
+						launchReady = 1; 
+						EIMSK |= (1<<INT1);
+						//Set launcher flag
 						//Move servo backward.
-						OCR3A = 1235;
+			//			OCR3A = 1235;
 						//start timeout
-						timeoutCheck = 1;
-						timeoutCounter = 0;
+			//			timeoutCheck = 1;
+			//			timeoutCounter = 0;
 					}
 					//HEX CODE: 04 00 00 
 					//Swatter Control
@@ -519,7 +525,7 @@ ISR(TIMER0_OVF_vect){
 //		}
 	}
 	if(tick == 120){
-//			uartSendc(rotation);
+			uartSendc(rotation);
 			tick = 0;
 	}
 	tick++;
@@ -532,6 +538,18 @@ ISR(TIMER0_OVF_vect){
 	PIDcompute();	
 }
 
+ISR(INT1_vect){
+	if(launchReady == 1){
+		launchReady = 0; 
+		//Set launcher flag
+		//Move servo backward.
+		OCR3A = 1235;
+		//start timeout
+		timeoutCheck = 1;
+		timeoutCounter = 0;
+		EIMSK &= ~(1<<INT1); 
+	}
+}
 ISR(INT5_vect){
 	//Forward limit switch - stop the motor from moving.
 	//Switch should be attached to ground and Digital 3
