@@ -14,7 +14,7 @@ LAUNCH = 0
 CARRIAGE = 1
 
 class App:
-    def __init__(self, video_src, robotq, appq, launchspeed):
+    def __init__(self, video_src, robotq, appq, launchspeed, swatted):
         self.cap = video.create_capture(video_src)
         _, self.frame = self.cap.read()
         cv2.namedWindow('frame')
@@ -29,6 +29,7 @@ class App:
         self.robotq = robotq
         self.appq = appq
         self.launchspeed = launchspeed
+        self.swatted = swatted
 
     def nothing(*arg):
         pass
@@ -109,6 +110,7 @@ class App:
             self.rect_sel.draw(vis)
 
             draw_str(vis, (5, 15), "Launch speed: {}".format(self.launchspeed.value))
+            draw_str(vis, (5, 30), "Swatted: {}".format(self.swatted.value))
 
             cv2.imshow('frame', vis)
             ch = cv2.waitKey(10)

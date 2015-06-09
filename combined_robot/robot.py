@@ -16,13 +16,13 @@ SWAT = 2
 
 class Robot(object):
 
-    def __init__(self, serialDevice, robotq, appq, launchspeed):
+    def __init__(self, serialDevice, robotq, appq, launchspeed, swatted):
         self.speeds = {}
         self.port = serial.Serial(serialDevice, baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3.0)
         self.robotq = robotq
         self.appq = appq
         self.launchspeed = launchspeed
-        self.swatted = False
+        self.swatted = swatted
 
     def main(self):
         self.speeds[1] = 0
@@ -77,13 +77,13 @@ class Robot(object):
 
     def swat(self):
         byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (SWAT << OFFSET_ID)
-        if not self.swatted:
+        if self.swatted.value == 0:
             #pos = 1220 # max
             pos = 1180
-            self.swatted = True
+            self.swatted.value = 1
         else:
             pos = 1130 # min
-            self.swatted = False
+            self.swatted.value = 0
         byte2 = (pos >> OFFSET_MAGNITUDE1) & 0b11111111
         byte3 = (pos >> OFFSET_MAGNITUDE2) & 0b11111111
         packet = ''.join(chr(b) for b in [byte1, byte2, byte3])
@@ -93,7 +93,7 @@ class Robot(object):
     def unswat(self):
         byte1 = (PACKET_DEVICE << OFFSET_TYPE) | (SWAT << OFFSET_ID)
         pos = 1152
-        self.swatted = False
+        self.swatted.value = 0
         byte2 = (pos >> OFFSET_MAGNITUDE1) & 0b11111111
         byte3 = (pos >> OFFSET_MAGNITUDE2) & 0b11111111
         packet = ''.join(chr(b) for b in [byte1, byte2, byte3])

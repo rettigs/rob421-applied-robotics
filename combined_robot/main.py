@@ -45,8 +45,9 @@ if __name__ == '__main__':
     
     robotq, appq = Queue(), Queue()
     launchspeed = Value('i', 0)
+    swatted = Value('i', 0)
 
-    robot = Robot(serialDevice, robotq, appq, launchspeed)
+    robot = Robot(serialDevice, robotq, appq, launchspeed, swatted)
     robotProcess = Process(target=robot.main)
     robotProcess.start()
 
@@ -54,4 +55,4 @@ if __name__ == '__main__':
     #opts = dict(opts)
 
     #App(videoDevice, paused = '--pause' in opts).run()
-    App(captureDevice, robotq, appq, launchspeed).run()
+    App(captureDevice, robotq, appq, launchspeed, swatted).run()
