@@ -82,7 +82,7 @@ class Robot(object):
             pos = 1180
             self.swatted = True
         else:
-            pos = 1152 # min
+            pos = 1130 # min
             self.swatted = False
         byte2 = (pos >> OFFSET_MAGNITUDE1) & 0b11111111
         byte3 = (pos >> OFFSET_MAGNITUDE2) & 0b11111111
